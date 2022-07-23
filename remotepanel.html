@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>FP30 Remote Panel</title>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="mobile-web-app-capable" content="yes" />
+
+
+<script type="text/javascript">
+// global access
+let midi = null;
+let midiinput = null;
+let midioutput = null;
+let midiIn = [];
+let midiOut = [];
+
+let debug = false;
+
+/*
+ * Roland FP-30 Dashboard Address Map.
+ *
+ * For SysEx messages the most significant bit has to be 0, so all data bytes
+ * represent 7 bit. To simplify things all addresses are keeping the 8th bit,
+ * i.e. all 32bit addresses are actually 28bit with each byte having a padding
+   bit. As such an address of f.e. 0x01000080 is invalid.
+ */
+const addressmap = {
+    0x01000101: {name: 'transpose',
+                 offset: 64,
+                 length: 1 },
+    0x01000103: {name: 'recorder_playback_state',
+                 length: 1,
+                 type: 'checkbox'},
+    0x01000105: {name: 'playback_current_bar',
+                 length: 2 },
+    0x01000108: {name: 'metronome_speed',
+                 length: 2 },
+    0x0100010f: {name: 'metronome_status',
+                 length: 1,
+                 type: 'checkbox'},
+    0x01000110: {name: 'speaker_disabled',
+                 length: 1,
+                 type: 'checkbox'},
+    0x01000200: {name: 'keyboard_mode',
+                 length: 1 },
+    0x01000201: {name: 'keyboard_split_point',
+                 length: 1 },
+    // ...
+    0x01000207: {name: 'tone',
+                 length: 3,
+                 type: 'list'},
+    0x01000213: {name: 'volume',
+                 length: 1 },
+    0x01000218: {name: 'tuning',
+                 length: 2 },
+    0x0100021a: {name: 'ambience',
+                 length: 1 },
+    0x0100021c: {name: 'brilliance',
+                 offset: 0x40,
+                 length: 1 },
+    0x0100021d: {name: 'key_touch',
+                 length: 1,
+                 type: 'list'},
+    0x0100021f: {name: 'metronome_beats',
+                 length: 1,
+                 type: 'list'},
+    0x01000300: {name: 'dashboard_push_notification',
+                 length: 2 },
+    0x01000306: {name: 'dashboard_remote_control',
+                 length: 1 },
+    0x01000307: {name: 'transpose_set',
+                 offset: 0x40,
+                 length: 1 },
+    0x01000309: {name: 'metronome_tempo',
+                 length: 2 },
+    0x01000509: {name: 'metronome_enabled',
+                 length: 1,
+                 type: 'checkbox'},
+};
+
+// build up map with name as key from address map.
+let functionmap = {};
+for (const v in addressmap) {
+    functionmap[addressmap[v].name] = v;
+};
+
+// Maps 3 byte parameter to tone name. Value interpreted as byte sequence.
+const soundmap = {
+    0x000000: "Grand Piano 1",
+    0x000001: "Grand Piano 2",
+    0x000002: "Grand Piano 3",
+    0x000003: "Ragtime Piano",
+    0x000004: "Harpsichord 1",
+    0x000005: "Harpsichord 2",
+    0x004000: "E-Piano 1",
+    0x004001: "E-Piano 2",
+    0x004002: "E-Piano 3",
+    0x004003: "Clavinova",
+    0x004004: "Vibraphone",
+    0x004005: "Celesta",
+    0x004006: "Synth Bell",
+    0x008000: "Strings 1",
+    0x008001: "Strings 2",
+    0x008002: "Harp",
+    0x008003: "Jazz Organ 1",
+    0x008004: "Jazz Organ 2",
+    0x008005: "Church Organ 1",
+    0x008006: "Church Organ 2",
+    0x008007: "Accordion",
+    0x008008: "Choir 1",
+    0x008009: "Jazz Scat",
+    0x00800a: "Choir 2",
+    0x00800b: "Choir 3",
+    0x00800c: "Synth Pad",
+    0x00800d: "Nylon string Guitar",
+    0x00800e: "Steel string Guitar",
+    0x00800f: "Decay Strings",
+    0x008010: "Decay Choir",
+    0x008011: "Decay Choir Pad",
+    0x008012: "Acoustic Bass",
+    0x008013: "Acoustic Bass + Cymbal",
+    0x008014: "Fingered Bass",
+    0x008015: "Thum Voice"
+};
+
+function checksum(data) {
+    // Roland SysEx checksum
+    let check = 0;
+    for (let value of data) {
+        check += value;
+    }
+    return (0x80 - (check % 0x80)) & 0x7f;
+}
+
+function processDt1(address, data) {
+    log("processDt1:", address.toString(16), "(", data.length, ")", data);
+    let i = 0;
+    while (i < data.length) {
+        let addr = address + i;
+        if (addressmap[addr]) {
+            const entry = addressmap[addr];
+            let value = 0;
+            for (let j = 0; j < entry.length; j++) {
+                value <<= 7;
+                value += data[i + j];
+            }
+            const offset = addressmap[addr].offset;
+            value -= offset ? offset : 0;
+            log("address entry", entry.name, "(", entry.length, ")",
+                "value:", value.toString(16),
+                "type", addressmap[addr].type);
+
+            i += entry.length;
+
+            // update HTML with data.
+            if (addressmap[addr].type == 'checkbox') {
+                setCheckboxValue(entry.name, value);
+            }
+            else if (addressmap[addr].type == 'list') {
+                setSelectValue(entry.name, value);
+            }
+            else {
+                setNumberValue(entry.name, value)
+            }
+        } else {
+            i++;
+        }
+    }
+}
+
+/* set value of a select type="checkbox" */
+function setCheckboxValue(objname, value) {
+    let element = document.getElementById(objname);
+    if (element != null) {
+        element.checked = (value == 0) ? false : true;
+    }
+}
+
+/* set value of a select type="range" with optional text element */
+function setNumberValue(objname, value) {
+    let v = document.getElementById(objname);
+    v ? (v.value = value) : null;
+    let n = document.getElementById(objname + "_text");
+    n ? (n.innerHTML = value) : null;
+}
+
+/* set select type="option" value */
+function setSelectValue(objname, value) {
+    log("setSelectValue", objname, value);
+    const obj = document.getElementById(objname);
+    if (obj) {
+        for (let i = 0; i < obj.options.length; i++) {
+            if (obj.options[i].value == value) {
+                obj.options[i].selected = true;
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+/* send selected value to instrument */
+function setValueByName(name, value) {
+    let v = parseInt(value);
+    const t = document.getElementById(name + "_text");
+    t ? (t.innerHTML = v) : null;
+    const addr = functionmap[name];
+    const offset = addressmap[addr].offset;
+    v += offset ? offset : 0;
+    let msg = [];
+    for (let i = addressmap[addr].length; i > 0; i--) {
+        msg.push((v >> (7 * (i - 1))) & 0x7f);
+    }
+    sendDt1(addr, msg);
+}
+
+function onMidiMessage(event) {
+    if (!midioutput || event.data.length <= 13) {
+        return;
+    }
+    log("sysex, len: ", event.data.length);
+    // have useful data.
+    if (event.data[1] == 0x41 && event.data[2] == 0x10
+            && event.data[3] == 0x00 && event.data[4] == 0x00
+            && event.data[5] == 0x00 && event.data[6] == 0x28) {
+        // ok, is Roland "Piano Partner" message.
+        const cmd = event.data[7];
+        const address = event.data[8] << 24 | event.data[9] << 16 | event.data[10] << 8 | event.data[11];
+        const length = event.data.length - 14;
+
+        if (cmd == 0x11) {
+            log("RQ1: address", address, "length", length);
+            // length: only up to 127 for now. Ignore everything else.
+            // length = event.data[15];
+        }
+        if (cmd == 0x12) {
+            log("DT1: address", address, "length", length);
+            processDt1(address, event.data.slice(12, -2));
+        }
+    }
+}
+
+function log(text) {
+    const args = Array.prototype.slice.call(arguments, 1);
+    const logtext = text + " " + args.join(" ");
+    console.log(logtext);
+    if (debug) {
+        document.getElementById("log").innerText += logtext + "\n";
+    }
+}
+
+function initDevices(midi) {
+    midiIn.length = 0;
+    midiOut.length = 0;
+    // MIDI devices that send you data.
+    let inputs = midi.inputs.values();
+    for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
+        midiIn.push(input.value);
+        log("midiIn.push(", input.value.name, ")");
+    }
+
+    // MIDI devices that you send data to.
+    let outputs = midi.outputs.values();
+    for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
+        midiOut.push(output.value);
+        log("midiOut.push(", output.value.name, ")");
+    }
+
+    let select = document.getElementById("midiInterface");
+    for (let i = 1; i <= select.options.length; i++) {
+        select.remove(1);
+        log("remove", select.text);
+    }
+
+    let options = midiIn;
+    for(let i = 0; i < options.length; i++) {
+        let opt = options[i].name;
+        let element = document.createElement("option");
+        element.textContent = opt;
+        element.value = opt;
+        select.appendChild(element);
+    }
+    for (let cookie of document.cookie.split(";")) {
+        let [key, value] = cookie.trim().split("=");
+        if (key == "midi") {
+            const index = setSelectValue("midiInterface", value);
+            selectedInterface(index);
+        }
+    }
+}
+
+async function selectedInterface(index) {
+    log("selectedInterface(", index, ")");
+    if (index <= 0) {
+        document.getElementById("connection").innerHTML = "🛑";
+        midioutput = null;
+        return;
+    }
+    let interfacename = midiIn[index - 1].name
+    // debug: handle virtual MIDI on local computer.
+    if (interfacename == "Virtual MIDI output") {
+        interfacename = "Virtual MIDI input";
+    }
+    // Search this name on midi outputs
+    midioutput = null;
+    for (let i = 0; i < midiOut.length; i++) {
+        if (midiOut[i].name == interfacename) {
+            // Connect midioutput
+            midioutput = midiOut[i];
+            document.getElementById("connection").innerHTML = "✅";
+            document.cookie = "midi=" + interfacename;
+            break;
+        }
+    }
+
+    await new Promise(r => setTimeout(r, 100)); // sleep 100ms
+    midiinput = midiIn[index - 1];
+    midiinput.onmidimessage = onMidiMessage;
+    // Enable instrument remote control.
+    sendDt1(0x01000300, [0x00, 0x01]);
+    sendDt1(0x01000306, [0x01]);
+    reload();
+}
+
+function reload() {
+    sendRq1(0x01000100, 0x40);
+    sendRq1(0x01000200, 0x7f);
+    sendRq1(0x01000300, 0x20);
+    sendRq1(0x01000500, 0x20);
+    sendRq1(0x01000700, 0x20);
+}
+
+function sendRq1(address, size) {
+    let msg = [0xf0, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28, 0x11];
+
+    for (let i = 3; i >= 0; i--) {
+        msg.push((address >> (8 * i)) & 0x7f);
+    }
+    for (let i = 3; i >= 0; i--) {
+        msg.push((size >> (7 * i)) & 0x7f);
+    }
+    msg.push(checksum(msg.slice(8)));
+    msg.push(0xf7);
+    log("sendRq1", msg);
+    if (midioutput) {
+        midioutput.send(msg);
+    }
+}
+
+function sendDt1(address, data) {
+    let msg = [0xf0, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28, 0x12];
+
+    for (let i = 3; i >= 0; i--) {
+        msg.push((address >> (8 * i)) & 0xff);
+    }
+    msg = msg.concat(data);
+    msg.push(checksum(msg.slice(8)));
+    msg.push(0xf7);
+    log("sendDt1", msg);
+    if (midioutput) {
+        midioutput.send(msg);
+    }
+}
+
+function onMidiSuccess(midiAccess) {
+    log("MIDI connected.");
+    midi = midiAccess
+
+    initDevices(midi);
+    midi.onstatechange = event => {
+        // Re-initialize whenever devices change.
+        log("State change", event.port.state, ":",
+            event.port.name, event.port.manufacturer,
+            event.port.type, event.port.connection);
+        initDevices(midi);
+     };
+}
+
+function onMidiFailure(msg) {
+    log("Failed to get MIDI access: " + msg);
+    alert("Failed to get MIDI access: " + msg)
+}
+
+function setup() {
+    navigator.requestMIDIAccess({sysex:true}).then(onMidiSuccess, onMidiFailure);
+    for (const code in soundmap) {
+        const item = soundmap[code];
+        let element = document.createElement("option");
+        element.textContext = 'sounds';
+        element.value = code;
+        element.text = item;
+        if (code < 0x4000) {
+            document.getElementById("sounds_piano").appendChild(element);
+        }
+        else if (code < 0x8000) {
+            document.getElementById("sounds_epiano").appendChild(element);
+        }
+        else {
+            document.getElementById("sounds_other").appendChild(element);
+        }
+    }
+    location.search.substr(1).split("&").forEach(function (item) {
+        debug = item.split("=")[0] == "debug" ? true : debug;
+    });
+}
+
+</script>
+
+</head>
+<body onload="setup();">
+    <div><h2>FP30 Remote Panel</h2></div>
+    <div>
+        <select id="midiInterface" onchange="selectedInterface(this.selectedIndex);">
+            <option>Select MIDI interface</option>
+        </select>
+        <label id="connection">&nbsp;🛑</label>
+    </div>
+    <div>
+        <label for="selectSound" style="font-weight:bold;">Sound</label>
+        <select id="tone" name="tone" oninput="setValueByName('tone', this.value);">
+            <optgroup id="sounds_piano" name="sounds_piano" label="Piano" />
+            <optgroup id="sounds_epiano" name="sounds_epiano" label="E-Piano" />
+            <optgroup id="sounds_other" name="sounds_other" label="Other" />
+        </select>
+    </div>
+    <div>
+        <label for="selectBeat" style="font-weight:bold;">Metronome Beats</label>
+        <select id="metronome_beats" name="metronome_beats" oninput="setValueByName('metronome_beats', this.value);">
+            <option value="0">0 beats</option>
+            <option value="1">2 beats</option>
+            <option value="2">3 beats</option>
+            <option value="3">4 beats</option>
+            <option value="4">5 beats</option>
+            <option value="5">6 beats</option>
+        </select>
+        <input type="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/>
+        <label class="labslide">Enabled</label>
+    </div>
+    <div>
+        <input type="range" min="0" max="100" value="100" class="slider" id="volume" oninput="setValueByName('volume', this.value);"/>
+        <label class="labslide">Volume</label><label class="labslide" id="volume_text">127</label>
+    </div>
+    <div>
+        <input type="range" min="10" max="240" value="100" class="slider" id="metronome_speed" oninput="setValueByName('metronome_tempo', this.value);"/>
+        <label class="labslide">Metronome</label><label class="labslide" id="metronome_speed_text">0</label>
+    </div>
+    <div>
+        <input type="range" min="-10" max="10" value="0" class="slider" id="transpose" oninput="setValueByName('transpose_set', this.value);"/>
+        <label class="labslide">Transpose</label><label class="labslide" id="transpose_text">0</label>
+    </div>
+    <div>
+        <input type="range" min="-1" max="1" value="0" class="slider" id="brilliance" oninput="setValueByName('brilliance', this.value);"/>
+        <label class="labslide">Brilliance</label><label class="labslide" id="brilliance_text">0</label>
+    </div>
+    <div>
+        <input type="range" min="0" max="4" value="0" class="slider" id="ambience" oninput="setValueByName('ambience', this.value);"/>
+        <label class="labslide">Ambience</label><label class="labslide" id="ambience_text">0</label>
+    </div>
+
+    <div>
+        <button style="width:auto;height:auto;margin:12px;" onclick="reload();">Reload</button>
+    </div>
+
+    <p id="log" name="log" style="color:white;">&nbsp;<br/></p>
+
+</body>
+</html>

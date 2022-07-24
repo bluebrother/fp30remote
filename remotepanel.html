@@ -1,12 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>FP30 Remote Panel</title>
+        <title>FP30 Remote</title>
         <meta charset="utf-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="color-scheme" content="dark light">
 
+    <style>
+body {
+    font-family: verdana,sans-serif;
+    font-size: 14pt;
+    user-select: none;
+    background: #fff;
+}
+h2 {
+    margin-left: 4px;
+}
+
+select {
+    height: 32px;
+    font-size: 14pt;
+    font-weight: bold;
+    border-radius: 0px;
+    background: #fff;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+option {
+    font-size: 13pt;
+}
+
+input[type=range] {
+    width: 100%;
+}
+
+input[type=checkbox] {
+    transform: scale(1.5);
+    padding: 0px;
+    margin: 0px;
+}
+
+button {
+    background-color: #fff;
+    color: #000;
+}
+
+div {
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: fit-content(5%) minmax(0, 1fr) fit-content(2%);
+}
+
+.slider {
+    width: 70%;
+    height: 4px;
+    border-radius: 5px;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #333;
+    }
+    select {
+        background: #333;
+    }
+}
+    </style>
 
 <script type="text/javascript">
 // global access
@@ -410,53 +483,58 @@ function setup() {
 
 </head>
 <body onload="setup();">
-    <div><h2>FP30 Remote Panel</h2></div>
-    <div>
-        <select id="midiInterface" onchange="selectedInterface(this.selectedIndex);">
-            <option>Select MIDI interface</option>
-        </select>
-        <label id="connection">&nbsp;🛑</label>
-    </div>
-    <div>
-        <label for="selectSound" style="font-weight:bold;">Sound</label>
-        <select id="tone" name="tone" oninput="setValueByName('tone', this.value);">
-            <optgroup id="sounds_piano" name="sounds_piano" label="Piano" />
-            <optgroup id="sounds_epiano" name="sounds_epiano" label="E-Piano" />
-            <optgroup id="sounds_other" name="sounds_other" label="Other" />
-        </select>
-    </div>
-    <div>
-        <label for="selectBeat" style="font-weight:bold;">Metronome Beats</label>
-        <select id="metronome_beats" name="metronome_beats" oninput="setValueByName('metronome_beats', this.value);">
-            <option value="0">0 beats</option>
-            <option value="1">2 beats</option>
-            <option value="2">3 beats</option>
-            <option value="3">4 beats</option>
-            <option value="4">5 beats</option>
-            <option value="5">6 beats</option>
-        </select>
-        <input type="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/>
-        <label class="labslide">Enabled</label>
-    </div>
-    <div>
-        <input type="range" min="0" max="100" value="100" class="slider" id="volume" oninput="setValueByName('volume', this.value);"/>
-        <label class="labslide">Volume</label><label class="labslide" id="volume_text">127</label>
-    </div>
-    <div>
-        <input type="range" min="10" max="240" value="100" class="slider" id="metronome_speed" oninput="setValueByName('metronome_tempo', this.value);"/>
-        <label class="labslide">Metronome</label><label class="labslide" id="metronome_speed_text">0</label>
-    </div>
-    <div>
-        <input type="range" min="-10" max="10" value="0" class="slider" id="transpose" oninput="setValueByName('transpose_set', this.value);"/>
-        <label class="labslide">Transpose</label><label class="labslide" id="transpose_text">0</label>
-    </div>
-    <div>
-        <input type="range" min="-1" max="1" value="0" class="slider" id="brilliance" oninput="setValueByName('brilliance', this.value);"/>
-        <label class="labslide">Brilliance</label><label class="labslide" id="brilliance_text">0</label>
-    </div>
-    <div>
-        <input type="range" min="0" max="4" value="0" class="slider" id="ambience" oninput="setValueByName('ambience', this.value);"/>
-        <label class="labslide">Ambience</label><label class="labslide" id="ambience_text">0</label>
+    <div><h2>FP30 Remote</h2></div>
+    <div class="grid-container"style="display:grid;grid-template-columns:fit-content(5%) minmax(0, 1fr) fit-content(2%);">
+        <div>Interface</div>
+        <div>
+            <select id="midiInterface" onchange="selectedInterface(this.selectedIndex);">
+                <option>Select MIDI interface</option>
+            </select>
+        </div>
+        <div id="connection">&nbsp;🛑</div>
+
+        <div>Sound</div>
+        <div>
+            <select id="tone" name="tone" oninput="setValueByName('tone', this.value);">
+                <optgroup id="sounds_piano" name="sounds_piano" label="Piano" />
+                <optgroup id="sounds_epiano" name="sounds_epiano" label="E-Piano" />
+                <optgroup id="sounds_other" name="sounds_other" label="Other" />
+            </select>
+        </div>
+        <div></div>
+        <div>Metronome</div>
+        <div>
+            <select id="metronome_beats" name="metronome_beats" oninput="setValueByName('metronome_beats', this.value);">
+                <option value="0">0 beats</option>
+                <option value="1">2 beats</option>
+                <option value="2">3 beats</option>
+                <option value="3">4 beats</option>
+                <option value="4">5 beats</option>
+                <option value="5">6 beats</option>
+            </select>
+        </div>
+        <div><input type="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/></div>
+
+        <div>Volume</div>
+        <div><input type="range" min="0" max="100" value="100" class="slider" id="volume" oninput="setValueByName('volume', this.value);"/></div>
+        <div id="volume_text">100</div>
+
+        <div>Metronome</div>
+        <div><input type="range" min="10" max="240" value="0" class="slider" id="metronome_speed" oninput="setValueByName('metronome_tempo', this.value);"/></div>
+        <div id="metronome_speed_text">0</div>
+
+        <div>Transpose</div>
+        <div><input type="range" min="-10" max="10" value="0" class="slider" id="transpose" oninput="setValueByName('transpose_set', this.value);"/></div>
+        <div id="transpose_text">0</div>
+
+        <div>Brilliance</div>
+        <div><input type="range" min="-1" max="1" value="0" class="slider" id="brilliance" oninput="setValueByName('brilliance', this.value);"/></div>
+        <div id="brilliance_text">0</div>
+
+        <div>Ambience</div>
+        <div><input type="range" min="0" max="4" value="0" class="slider" id="ambience" oninput="setValueByName('ambience', this.value);"/></div>
+        <div id="ambience_text">0</div>
+
     </div>
 
     <div>

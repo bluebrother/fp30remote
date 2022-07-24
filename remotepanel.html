@@ -457,7 +457,16 @@ function onMidiFailure(msg) {
 }
 
 function setup() {
-    navigator.requestMIDIAccess({sysex:true}).then(onMidiSuccess, onMidiFailure);
+    if (navigator.requestMIDIAccess) {
+        try {
+            let res = navigator.requestMIDIAccess({sysex:true}).then(onMidiSuccess, onMidiFailure);
+        } catch (e) {
+            window.alert("MIDI access not granted", res);
+        }
+    } else {
+        window.alert("MIDI access not supported by this browser.");
+    }
+
     for (const code in soundmap) {
         const item = soundmap[code];
         let element = document.createElement("option");

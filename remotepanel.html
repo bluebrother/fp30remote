@@ -109,7 +109,8 @@ const addressmap = {
     0x01000105: {name: 'playback_current_bar',
                  length: 2 },
     0x01000108: {name: 'metronome_speed',
-                 length: 2 },
+                 length: 2,
+                 callback: setMetronomeNamed },
     0x0100010f: {name: 'metronome_status',
                  length: 1,
                  type: 'checkbox'},
@@ -198,6 +199,17 @@ const soundmap = {
     0x008015: "Thum Voice"
 };
 
+const tempi_named = {
+    40: "Largo",
+    60: "Larghetto",
+    66: "Adagio",
+    76: "Andante",
+    108: "Moderato",
+    120: "Allegro",
+    168: "Presto",
+    200: "Prestissimo"
+};
+
 function checksum(data) {
     // Roland SysEx checksum
     let check = 0;
@@ -237,10 +249,30 @@ function processDt1(address, data) {
             else {
                 setNumberValue(entry.name, value)
             }
+            if (addressmap[addr].callback) {
+                addressmap[addr].callback(value);
+            }
         } else {
             i++;
         }
     }
+}
+
+function setMetronomeNamed(value) {
+    log("setMetronomeNamed");
+    let tempovals = [];
+    for (const t in tempi_named) {
+        tempovals.push(t);
+    }
+    // do we need to make sure this is sorted?
+    tempovals.sort((a, b) => a - b);
+    let tempo = tempovals[0];
+    for (const item in tempovals) {
+        if (value >= tempovals[item]) {
+            tempo = tempovals[item];
+        }
+    }
+    setSelectValue('metronome_named', tempo);
 }
 
 /* set value of a select type="checkbox" */
@@ -483,6 +515,13 @@ function setup() {
             document.getElementById("sounds_other").appendChild(element);
         }
     }
+    for (const tempo in tempi_named) {
+        let element = document.createElement("option");
+        element.value = tempo;
+        element.text = tempi_named[tempo];
+        document.getElementById("metronome_named").appendChild(element);
+    }
+
     location.search.substr(1).split("&").forEach(function (item) {
         debug = item.split("=")[0] == "debug" ? true : debug;
     });
@@ -520,6 +559,8 @@ function setup() {
                 <option value="3">4 beats</option>
                 <option value="4">5 beats</option>
                 <option value="5">6 beats</option>
+            </select>
+            <select id="metronome_named" name="metronome_named" oninput="setValueByName('metronome_tempo', this.value);">
             </select>
         </div>
         <div><input type="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/></div>

@@ -19,23 +19,25 @@ h2 {
     margin-left: 4px;
 }
 
+div {
+    vertical-align: middle;
+}
+
 select {
-    height: 32px;
-    font-size: 14pt;
+    height: 22px;
+    font-size: 12pt;
     font-weight: bold;
     border-radius: 0px;
     background: #fff;
     border-top: none;
     border-left: none;
     border-right: none;
-}
-
-option {
-    font-size: 13pt;
+    vertical-align: middle;
 }
 
 input[type=range] {
     width: 100%;
+    vertical-align: middle;
 }
 
 input[type=checkbox] {
@@ -531,8 +533,8 @@ function setup() {
 
 </head>
 <body onload="setup();">
-    <div><h2>FP30 Remote</h2></div>
-    <div class="grid-container"style="display:grid;grid-template-columns:fit-content(5%) minmax(0, 1fr) fit-content(2%);">
+    <div><h2>FP30 Remote Control</h2></div>
+    <div class="grid-container">
         <div>Interface</div>
         <div>
             <select id="midiInterface" onchange="selectedInterface(this.selectedIndex);">
@@ -550,6 +552,10 @@ function setup() {
             </select>
         </div>
         <div></div>
+        <div>Volume</div>
+        <div><input type="range" min="0" max="100" value="100" class="slider" id="volume" oninput="setValueByName('volume', this.value);"/></div>
+        <div id="volume_text">100</div>
+
         <div>Metronome</div>
         <div>
             <select id="metronome_beats" name="metronome_beats" oninput="setValueByName('metronome_beats', this.value);">
@@ -564,10 +570,6 @@ function setup() {
             </select>
         </div>
         <div><input type="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/></div>
-
-        <div>Volume</div>
-        <div><input type="range" min="0" max="100" value="100" class="slider" id="volume" oninput="setValueByName('volume', this.value);"/></div>
-        <div id="volume_text">100</div>
 
         <div>Metronome</div>
         <div><input type="range" min="10" max="240" value="0" class="slider" id="metronome_speed" oninput="setValueByName('metronome_tempo', this.value);"/></div>

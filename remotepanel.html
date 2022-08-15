@@ -338,12 +338,12 @@ function onMidiMessage(event) {
         const length = event.data.length - 14;
 
         if (cmd == 0x11) {
-            log("RQ1: address", address, "length", length);
+            log("RQ1: address", address.toString(16), "length", length);
             // length: only up to 127 for now. Ignore everything else.
             // length = event.data[15];
         }
         if (cmd == 0x12) {
-            log("DT1: address", address, "length", length);
+            log("DT1: address", address.toString(16), "length", length);
             processDt1(address, event.data.slice(12, -2));
         }
     }

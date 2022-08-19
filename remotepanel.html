@@ -323,7 +323,58 @@ function setValueByName(name, value) {
     sendDt1(addr, msg);
 }
 
+function arrayToHex(array) {
+    let result = "";
+    for (let i = 0; i < array.length; i++) {
+        result += ("0" + array[i].toString(16)).slice(-2);
+        result += " ";
+    }
+    return result;
+}
+
+function arrayIsEqual(data, expected) {
+    // compare data with expected. data must be at least the size of expected.
+    // Compares up to the length of expected.
+    if (data.length < expected.length) {
+        return false;
+    }
+    let ok = 0;
+    for (let i = 0; i < expected.length; i++) {
+        if (expected[i] == data[i]) {
+            ok++;
+        }
+    }
+    return ok == expected.length;
+}
+
 function onMidiMessage(event) {
+    if (event.data.length == 15
+        && arrayIsEqual(event.data, [0xf0, 0x7e, 0x10, 0x06, 0x02])) {
+        // Expect identity response for FP-30.
+        const expected = [0xf0, 0x7e, 0x10, 0x06, 0x02, 0x41, 0x42, 0x00, 0x00,
+                          0x20, 0x00, 0x01, 0x00, 0x00, 0xf7];
+
+        if (event.data[5] != 0x41) {
+            alert("Not a Roland instrument. Aborting.");
+            return;
+        }
+        if (!arrayIsEqual(event.data, expected)) {
+            let go = confirm("Unknown instrument!\n\n"
+                  + "Instrument returned unexpected identification data.\n"
+                  + "Expected: " + arrayToHex(expected) + "\n"
+                  + "Got: " + arrayToHex(event.data) + "\n\n"
+                  + "Abort?");
+            if (go) {
+                return;
+            }
+        }
+        // Enable instrument remote control.
+        sendDt1(0x01000300, [0x00, 0x01]);
+        sendDt1(0x01000306, [0x01]);
+        reload();
+        return;
+    }
+
     if (!midioutput || event.data.length <= 13) {
         return;
     }
@@ -334,7 +385,8 @@ function onMidiMessage(event) {
             && event.data[5] == 0x00 && event.data[6] == 0x28) {
         // ok, is Roland "Piano Partner" message.
         const cmd = event.data[7];
-        const address = event.data[8] << 24 | event.data[9] << 16 | event.data[10] << 8 | event.data[11];
+        const address = event.data[8] << 24 | event.data[9] << 16
+                        | event.data[10] << 8 | event.data[11];
         const length = event.data.length - 14;
 
         if (cmd == 0x11) {
@@ -425,10 +477,11 @@ async function selectedInterface(index) {
     await new Promise(r => setTimeout(r, 100)); // sleep 100ms
     midiinput = midiIn[index - 1];
     midiinput.onmidimessage = onMidiMessage;
-    // Enable instrument remote control.
-    sendDt1(0x01000300, [0x00, 0x01]);
-    sendDt1(0x01000306, [0x01]);
-    reload();
+    if (midioutput) {
+        const msg = [0xf0, 0x7e, 0x10, 0x06, 0x01, 0xf7];
+        midioutput.send(msg);
+    }
+
 }
 
 function reload() {

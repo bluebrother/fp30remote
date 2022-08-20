@@ -458,10 +458,6 @@ async function selectedInterface(index) {
         return;
     }
     let interfacename = midiIn[index - 1].name
-    // debug: handle virtual MIDI on local computer.
-    if (interfacename == "Virtual MIDI output") {
-        interfacename = "Virtual MIDI input";
-    }
     // Search this name on midi outputs
     midioutput = null;
     for (let i = 0; i < midiOut.length; i++) {

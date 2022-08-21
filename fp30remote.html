@@ -88,8 +88,7 @@ div {
 let midi = null;
 let midiinput = null;
 let midioutput = null;
-let midiIn = [];
-let midiOut = [];
+let midiDevices = {};
 
 let debug = false;
 
@@ -411,73 +410,74 @@ function log(text) {
 }
 
 function initDevices(midi) {
-    midiIn.length = 0;
-    midiOut.length = 0;
+    midiDevices = {};
     // MIDI devices that send you data.
     let inputs = midi.inputs.values();
     for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
-        midiIn.push(input.value);
-        log("midiIn.push(", input.value.name, ")");
+        // Assumes MIDI names to be unique. The OS should ensure that.
+        midiDevices[input.value.name] = {};
+        midiDevices[input.value.name].input = input.value;
+        log("add MIDI input:", input.value.name);
     }
 
     // MIDI devices that you send data to.
     let outputs = midi.outputs.values();
     for (let output = outputs.next(); output && !output.done; output = outputs.next()) {
-        midiOut.push(output.value);
-        log("midiOut.push(", output.value.name, ")");
+        if (midiDevices[output.value.name]) {
+            midiDevices[output.value.name].output = output.value;
+        }
+        log("add MIDI output:", output.value.name);
     }
 
+    // TODO: don't repopulate options if number of interfaces didn't change.
     let select = document.getElementById("midiInterface");
-    for (let i = 1; i <= select.options.length; i++) {
-        select.remove(1);
-        log("remove", select.text);
+    let preselect = select.value;
+    log("preselected:", preselect);
+    for (let i = select.options.length - 1; i > 0; i--) {
+        log("remove old entries:", i, select.options[i]?.value);
+        select.remove(i);
     }
 
-    let options = midiIn;
-    for(let i = 0; i < options.length; i++) {
-        let opt = options[i].name;
-        let element = document.createElement("option");
-        element.textContent = opt;
-        element.value = opt;
-        select.appendChild(element);
-    }
     for (let cookie of document.cookie.split(";")) {
         let [key, value] = cookie.trim().split("=");
         if (key == "midi") {
-            const index = setSelectValue("midiInterface", value);
-            selectedInterface(index);
+            preselect = value;
         }
     }
+    for (const m in midiDevices) {
+        if (midiDevices[m].input && midiDevices[m].output) {
+            // only add items that have both input and output.
+            let element = document.createElement("option");
+            element.textContent = m;
+            element.value = m;
+            if (m == preselect) {
+                element.selected = true;
+            }
+            select.appendChild(element);
+            log("add new dropdown entry:", m);
+        }
+    }
+    selectedInterface(preselect);
 }
 
-async function selectedInterface(index) {
-    log("selectedInterface(", index, ")");
-    if (index <= 0) {
+async function selectedInterface(value) {
+    log("selectedInterface(", value, ")");
+    if (!midiDevices[value]) {
         document.getElementById("connection").innerHTML = "🛑";
-        midioutput = null;
         return;
     }
-    let interfacename = midiIn[index - 1].name
-    // Search this name on midi outputs
-    midioutput = null;
-    for (let i = 0; i < midiOut.length; i++) {
-        if (midiOut[i].name == interfacename) {
-            // Connect midioutput
-            midioutput = midiOut[i];
-            document.getElementById("connection").innerHTML = "✅";
-            document.cookie = "midi=" + interfacename;
-            break;
-        }
-    }
+    // Connect midioutput
+    midioutput = midiDevices[value].output;
+    document.getElementById("connection").innerHTML = "✅";
+    document.cookie = "midi=" + value;
 
     await new Promise(r => setTimeout(r, 100)); // sleep 100ms
-    midiinput = midiIn[index - 1];
+    midiinput = midiDevices[value].input;
     midiinput.onmidimessage = onMidiMessage;
     if (midioutput) {
         const msg = [0xf0, 0x7e, 0x10, 0x06, 0x01, 0xf7];
         midioutput.send(msg);
     }
-
 }
 
 function reload() {
@@ -530,7 +530,9 @@ function onMidiSuccess(midiAccess) {
         log("State change", event.port.state, ":",
             event.port.name, event.port.manufacturer,
             event.port.type, event.port.connection);
-        initDevices(midi);
+        if (event.port.type == "input") {
+            initDevices(midi);
+        }
      };
 }
 
@@ -586,7 +588,7 @@ function setup() {
     <div class="grid-container">
         <div>Interface</div>
         <div>
-            <select id="midiInterface" onchange="selectedInterface(this.selectedIndex);">
+            <select id="midiInterface" onchange="selectedInterface(this.value);">
                 <option>Select MIDI interface</option>
             </select>
         </div>

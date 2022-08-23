@@ -86,7 +86,6 @@ div {
 <script type="text/javascript">
 // global access
 let midi = null;
-let midiinput = null;
 let midioutput = null;
 let midiDevices = {};
 
@@ -379,9 +378,7 @@ function onMidiMessage(event) {
     }
     log("sysex, len: ", event.data.length);
     // have useful data.
-    if (event.data[1] == 0x41 && event.data[2] == 0x10
-            && event.data[3] == 0x00 && event.data[4] == 0x00
-            && event.data[5] == 0x00 && event.data[6] == 0x28) {
+    if (arrayIsEqual(event.data, [0xf0, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28])) {
         // ok, is Roland "Piano Partner" message.
         const cmd = event.data[7];
         const address = event.data[8] << 24 | event.data[9] << 16
@@ -431,8 +428,12 @@ function initDevices(midi) {
 
     // TODO: don't repopulate options if number of interfaces didn't change.
     let select = document.getElementById("midiInterface");
-    let preselect = select.value;
-    log("preselected:", preselect);
+    let preselect = null;
+    if (select.selectedIndex > 0) {
+        // index 0 is the special "Select interface" entry.
+        preselect = select.value;
+        log("preselected:", preselect);
+    }
     for (let i = select.options.length - 1; i > 0; i--) {
         log("remove old entries:", i, select.options[i]?.value);
         select.remove(i);
@@ -466,15 +467,20 @@ async function selectedInterface(value) {
         document.getElementById("connection").innerHTML = "🛑";
         return;
     }
+    if (!value) {
+        return;
+    }
     // Connect midioutput
     midioutput = midiDevices[value].output;
     document.getElementById("connection").innerHTML = "✅";
     document.cookie = "midi=" + value;
 
     await new Promise(r => setTimeout(r, 100)); // sleep 100ms
-    midiinput = midiDevices[value].input;
+    let midiinput = midiDevices[value].input;
     midiinput.onmidimessage = onMidiMessage;
+    await new Promise(r => setTimeout(r, 100)); // sleep 100ms
     if (midioutput) {
+        log("Sending MIDI identity request");
         const msg = [0xf0, 0x7e, 0x10, 0x06, 0x01, 0xf7];
         midioutput.send(msg);
     }
@@ -530,9 +536,7 @@ function onMidiSuccess(midiAccess) {
         log("State change", event.port.state, ":",
             event.port.name, event.port.manufacturer,
             event.port.type, event.port.connection);
-        if (event.port.type == "input") {
-            initDevices(midi);
-        }
+        initDevices(midi);
      };
 }
 
@@ -544,7 +548,8 @@ function onMidiFailure(msg) {
 function setup() {
     if (navigator.requestMIDIAccess) {
         try {
-            let res = navigator.requestMIDIAccess({sysex:true}).then(onMidiSuccess, onMidiFailure);
+            let res = navigator.requestMIDIAccess({sysex:true})
+                .then(onMidiSuccess, onMidiFailure);
         } catch (e) {
             window.alert("MIDI access not granted", res);
         }

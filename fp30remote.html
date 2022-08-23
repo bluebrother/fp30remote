@@ -72,6 +72,11 @@ div {
     -webkit-transition: .2s;
     transition: opacity .2s;
 }
+.tabbutton {
+    padding:10px;
+    margin:2px;
+    cursor:pointer;
+}
 
 @media (prefers-color-scheme: dark) {
     body {
@@ -546,6 +551,7 @@ function onMidiFailure(msg) {
 }
 
 function setup() {
+    toggleGrid('control');
     if (navigator.requestMIDIAccess) {
         try {
             let res = navigator.requestMIDIAccess({sysex:true})
@@ -585,12 +591,32 @@ function setup() {
     });
 }
 
+function toggleGrid(name) {
+    const items = ["control", "about"];
+    for (const item in items) {
+        let i = document.getElementById("grid-" + items[item]);
+        let j = document.getElementById("tab-" + items[item]);
+        if (items[item] == name) {
+            i.style = "display:grid;";
+            j.style = "border-bottom:4px solid currentcolor;";
+        } else {
+            i.style =  "display:none;";
+            j.style = "border-bottom:4px solid transparent;";
+
+        }
+    }
+}
+
 </script>
 
 </head>
 <body onload="setup();">
     <div><h2>FP-30 Remote Control</h2></div>
-    <div class="grid-container">
+    <div style="padding-bottom:20px;">
+    <span id='tab-control' class="tabbutton" onclick="toggleGrid('control')">Control</span>
+    <span id='tab-about' class="tabbutton" onclick="toggleGrid('about')">About</span>
+    </div>
+    <div id="grid-control" class="grid-container">
         <div>Interface</div>
         <div>
             <select id="midiInterface" onchange="selectedInterface(this.value);">
@@ -644,6 +670,33 @@ function setup() {
         <div id="ambience_text">0</div>
 
     </div>
+
+    <div class="grid-container" id="grid-about">
+        <div></div>
+        <div>
+            <p>
+                The FP-30 Remote Control uses WebMIDI to connect to a Roland
+                FP-30 instrument and control its dashboard settings.
+            </p>
+            <p>
+                It is self-contained, so you can save this page locally and
+                open it directly.
+            </p>
+            <p>
+                The page uses cookies to store the selected MIDI device to try
+                to reconnect on load. Cookies are not supported for local
+                files. This is a browser limitation; when using from a local
+                copy cookie functionality will not work.
+            </p>
+            <p>
+                This is considered experimental.
+                <em>It has only been tested with the FP-30.</em>
+                <b>Use at your own risk.</b>
+            </p>
+        </div>
+        <div></div>
+    </div>
+
 
     <div>
         <button style="width:auto;height:auto;margin:12px;" onclick="reload();">Reload</button>

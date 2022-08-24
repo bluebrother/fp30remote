@@ -1,0 +1,92 @@
+<html>
+    <head>
+        <title>Roland FP-30 Remote Control</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="color-scheme" content="dark light">
+    </head>
+    <style>
+body {
+    font-family: verdana,sans-serif;
+    font-size: 14pt;
+    user-select: none;
+    background: #fff;
+}
+h2 {
+    margin-left: 4px;
+}
+ul {
+    list-style: square;
+}
+
+div {
+    vertical-align: middle;
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+b {
+    background-color: #ffc;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #333;
+    }
+    b {
+        background-color: #666;
+    }
+}
+    </style>
+    <body>
+        <h2>Roland FP-30 Remote Control</h2>
+        <p>
+            The FP-30 Remote Control uses WebMIDI to connect to an FP-30
+            instrument and control its dashboard settings. Not all dashboard
+            settings have been implemented yet.
+            BLE is (currently) not supported.
+            It has been optimized for use with mobile browsers.
+            <br/>
+            It is self-contained, so you can save the control panel page
+            locally and open it directly.
+        </p>
+        <p>
+            Compatible Browsers:
+            <ul>
+                <li>Google Chrome (<em>except on iOS / iPadOS</em>)</li>
+                <li>Chromium based browsers</li>
+            </ul>
+            Incompatible Browsers:
+            <ul>
+                <li>Firefox (does not yet have the necesary APIs available)</li>
+                <li>Safari (Apple refuses to implement WebMIDI in WebKit)</li>
+                <li>Google Chrome on iOS / iPadOS (Apple forces browsers to use
+                    WebKit)</li>
+            </ul>
+        <p>
+            The page uses cookies to store
+            <ul>
+                <li>selected MIDI device: (try to) reconnect on load.</li>
+            </ul>
+            Cookies are not supported for local files. This is a browser
+            limitation; when using from a local copy cookie functionality will
+            not work.
+        </p>
+        <p>
+            This is considered experimental.
+            <em>It has only been tested with the FP-30.</em>
+            Instruments using the same mobile App (FP-10, FP-60) might
+            (partially) work.  Other instruments (especially newer instruments
+            like the FP-30X) might work, not work, or end up doing weird
+            things.
+            <b>Use at your own risk.</b>
+        </p>
+        <p>
+            <a href="fp30remote.html">Proceed to the FP-30 Remote Control</a>.
+        </p>
+    </body>
+</html>

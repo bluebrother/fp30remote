@@ -675,6 +675,10 @@ function toggleGrid(name) {
         <div><input type="range" min="0" max="4" value="0" class="slider" id="ambience" oninput="setValueByName('ambience', this.value);"/></div>
         <div id="ambience_text">0</div>
 
+        <div>
+            <button style="width:auto;height:auto;margin:12px;" onclick="reload();">Reload</button>
+        </div>
+
     </div>
 
     <div class="grid-container" id="grid-about">
@@ -703,10 +707,6 @@ function toggleGrid(name) {
         <div></div>
     </div>
 
-
-    <div>
-        <button style="width:auto;height:auto;margin:12px;" onclick="reload();">Reload</button>
-    </div>
 
     <div id="log" name="log"><br/></div>
 

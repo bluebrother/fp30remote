@@ -60,7 +60,7 @@ div {
 
 .grid-container {
     display: grid;
-    grid-template-columns: fit-content(5%) minmax(0, 1fr) fit-content(2%);
+    grid-template-columns: fit-content(5%) minmax(0, 1fr) fit-content(3em);
 }
 
 .slider {
@@ -72,11 +72,17 @@ div {
     -webkit-transition: .2s;
     transition: opacity .2s;
 }
+
 .tabbutton {
     padding:10px;
     margin:2px;
     cursor:pointer;
 }
+
+.hidden {
+    display: none;
+}
+
 b {
     background-color: #ffc;
 }
@@ -603,10 +609,10 @@ function toggleGrid(name) {
         let i = document.getElementById("grid-" + items[item]);
         let j = document.getElementById("tab-" + items[item]);
         if (items[item] == name) {
-            i.style = "display:grid;";
+            i.classList.remove("hidden");
             j.style = "border-bottom:4px solid currentcolor;";
         } else {
-            i.style =  "display:none;";
+            i.classList.add("hidden");
             j.style = "border-bottom:4px solid transparent;";
 
         }

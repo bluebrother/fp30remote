@@ -574,22 +574,33 @@ function setup() {
         window.alert("MIDI access not supported by this browser.");
     }
 
-    for (const code in soundmap) {
-        const item = soundmap[code];
-        let element = document.createElement("option");
-        element.textContext = 'sounds';
-        element.value = code;
-        element.text = item;
-        if (code < 0x4000) {
-            document.getElementById("sounds_piano").appendChild(element);
+    for (let e of document.getElementsByName("tones")) {
+        const groups = ["Piano", "E-Piano", "Other"];
+        let optgroups = {};
+        for (const optgrp in groups) {
+            let element = document.createElement("optgroup");
+            element.label = groups[optgrp];
+            e.appendChild(element);
+            optgroups[optgrp] = element;
         }
-        else if (code < 0x8000) {
-            document.getElementById("sounds_epiano").appendChild(element);
-        }
-        else {
-            document.getElementById("sounds_other").appendChild(element);
+        for (const code in soundmap) {
+            const item = soundmap[code];
+            let element = document.createElement("option");
+            element.value = code;
+            element.text = item;
+
+            if (code < 0x4000) {
+                optgroups[0].appendChild(element);
+            }
+            else if (code < 0x8000) {
+                optgroups[1].appendChild(element);
+            }
+            else {
+                optgroups[2].appendChild(element);
+            }
         }
     }
+
     for (const tempo in tempi_named) {
         let element = document.createElement("option");
         element.value = tempo;
@@ -638,10 +649,7 @@ function toggleGrid(name) {
 
         <div>Sound</div>
         <div>
-            <select id="tone" name="tone" oninput="setValueByName('tone', this.value);">
-                <optgroup id="sounds_piano" name="sounds_piano" label="Piano" />
-                <optgroup id="sounds_epiano" name="sounds_epiano" label="E-Piano" />
-                <optgroup id="sounds_other" name="sounds_other" label="Other" />
+            <select id="tone" name="tones" oninput="setValueByName('tone', this.value);">
             </select>
         </div>
         <div></div>

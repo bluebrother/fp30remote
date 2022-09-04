@@ -250,6 +250,9 @@ function processDt1(address, data) {
             }
             const offset = addressmap[addr].offset;
             value -= offset ? offset : 0;
+            if (addressmap[addr].fraction) {
+                value /= (10 ** addressmap[addr].fraction);
+            }
             log("address entry", entry.name, "(", entry.length, ")",
                 "value: 0x" + value.toString(16));
 
@@ -263,7 +266,9 @@ function processDt1(address, data) {
                 setSelectValue(entry.name, value);
             }
             else {
-                setNumberValue(entry.name, value)
+                let fraction = 0;
+                fraction = addressmap[addr]?.fraction;
+                setNumberValue(entry.name, value, fraction);
             }
             if (addressmap[addr].callback) {
                 addressmap[addr].callback(value);
@@ -300,11 +305,11 @@ function setCheckboxValue(objname, value) {
 }
 
 /* set value of a select type="range" with optional text element */
-function setNumberValue(objname, value) {
+function setNumberValue(objname, value, fraction) {
     let v = document.getElementById(objname);
     v ? (v.value = value) : null;
     let n = document.getElementById(objname + "_text");
-    n ? (n.innerHTML = value) : null;
+    n ? (n.innerHTML = value.toFixed(fraction)) : null;
 }
 
 /* set select type="option" value */
@@ -324,11 +329,14 @@ function setSelectValue(objname, value) {
 
 /* send selected value to instrument */
 function setValueByName(name, value) {
-    let v = parseInt(value);
-    const t = document.getElementById(name + "_text");
-    t ? (t.innerHTML = v) : null;
+    let v = parseFloat(value);
     const addr = functionmap[name];
+    let fraction = addressmap[addr]?.fraction;
+    fraction = fraction ? fraction : 0;
+    const t = document.getElementById(name + "_text");
+    t ? (t.innerHTML = v.toFixed(fraction)) : null;
     const offset = addressmap[addr].offset;
+    v *= fraction ? (10 ** fraction) : 1;
     v += offset ? offset : 0;
     let msg = [];
     for (let i = addressmap[addr].length; i > 0; i--) {

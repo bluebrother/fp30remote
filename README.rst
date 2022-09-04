@@ -205,11 +205,24 @@ Adress   Bytes  Type Description
 Instrument Bugs
 ===============
 
-There is a bug in the instrument software: when changing the transpose value to
-0 (i.e. no transpose) no message is sent to the App. This can be observed with
-the official App too. Reading the transpose location gives the correct result,
-and changing transpose to anything else makes the instrument send a DT1 as
+The instrument has some bugs when sending dashboard changed. These can be
+observed with the offical App as well.
+
+Setting Transpose to 0
+----------------------
+
+When changing the transpose value to 0 (i.e. no transpose) no message is sent
+to the App.  Reading the transpose location gives the correct result, and
+changing transpose to anything else makes the instrument send a DT1 as
 expected.
+
+Changing Tone in Dual Mode
+--------------------------
+
+When setting both tones to a tone from the same bank (i.e. Piano, E-Piano, or
+Other) the tone set is reported for the other tone when changing one of both,
+causing both to show the same selection. The instruments plays the tones as
+selected.
 
 
 Related Projects

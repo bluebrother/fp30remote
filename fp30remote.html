@@ -237,7 +237,7 @@ function checksum(data) {
 }
 
 function processDt1(address, data) {
-    log("processDt1:", address.toString(16), "(", data.length, ")", data);
+    log("processDt1:", address.toString(16), "(", data.length, ")", arrayToHex(data));
     let i = 0;
     while (i < data.length) {
         let addr = address + i;
@@ -251,8 +251,7 @@ function processDt1(address, data) {
             const offset = addressmap[addr].offset;
             value -= offset ? offset : 0;
             log("address entry", entry.name, "(", entry.length, ")",
-                "value:", value.toString(16),
-                "type", addressmap[addr].type);
+                "value: 0x" + value.toString(16));
 
             i += entry.length;
 
@@ -408,7 +407,7 @@ function onMidiMessage(event) {
             // length = event.data[15];
         }
         if (cmd == 0x12) {
-            log("DT1: address", address.toString(16), "length", length);
+            log("Received DT1: address", address.toString(16), "length", length);
             processDt1(address, event.data.slice(12, -2));
         }
     }
@@ -537,7 +536,7 @@ function sendDt1(address, data) {
     msg = msg.concat(data);
     msg.push(checksum(msg.slice(8)));
     msg.push(0xf7);
-    log("sendDt1", msg);
+    log("sendDt1:", arrayToHex(msg));
     if (midioutput) {
         midioutput.send(msg);
     }

@@ -333,9 +333,14 @@ function setValueByName(name, value) {
     const addr = functionmap[name];
     let fraction = addressmap[addr]?.fraction;
     fraction = fraction ? fraction : 0;
-    const t = document.getElementById(name + "_text");
-    t ? (t.innerHTML = v.toFixed(fraction)) : null;
-    const offset = addressmap[addr].offset;
+    if (addressmap[addr]?.callback) {
+        addressmap[addr].callback(value);
+        } else {
+        const t = document.getElementById(name + "_text");
+        t ? (t.innerHTML = v.toFixed(fraction)) : null;
+    }
+
+    const offset = addressmap[addr]?.offset;
     v *= fraction ? (10 ** fraction) : 1;
     v += offset ? offset : 0;
     let msg = [];

@@ -41,7 +41,11 @@ Connecting the mobile device with the App running to a PC makes it send data
 via MIDI.
 
 Thus in a (larger) setup using both the App and a PC to interface with MIDI is
-possible if the App MIDI is routed to the instrument (and back.)
+possible if the App MIDI is routed to the instrument (and back)::
+
+  +-----+            +----+            +-------+
+  | App | <--MIDI--> | PC | <--MIDI--> | FP-30 |
+  +-----+            +----+            +-------+
 
 
 Snooping MIDI traffic

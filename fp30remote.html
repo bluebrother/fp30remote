@@ -135,9 +135,11 @@ const addressmap = {
                  length: 1,
                  type: 'list'},
     0x01000200: {name: 'keyboard_mode',
-                 length: 1},
+                 length: 1,
+                 callback: toggleKeyboardMode},
     0x01000201: {name: 'keyboard_split_point',
-                 length: 1},
+                 length: 1,
+                 callback: keyboardSplitNoteName},
     0x01000202: {name: 'split_leftshift',
                  length: 1,
                  offset: 0x40 },
@@ -599,6 +601,7 @@ function onMidiFailure(msg) {
 
 function setup() {
     toggleGrid('control');
+    toggleKeyboardMode(0);
     if (navigator.requestMIDIAccess) {
         try {
             let res = navigator.requestMIDIAccess({sysex:true})
@@ -650,7 +653,7 @@ function setup() {
 }
 
 function toggleGrid(name) {
-    const items = ["control", "about"];
+    const items = ["control", "extra", "about"];
     for (const item in items) {
         let i = document.getElementById("grid-" + items[item]);
         let j = document.getElementById("tab-" + items[item]);
@@ -665,6 +668,40 @@ function toggleGrid(name) {
     }
 }
 
+function toggleKeyboardMode(value) {
+    const modes = {0: "single",
+                   1: "split",
+                   2: "dual",
+                   3: "twin" };
+
+    // first, hide all elements.
+    for (const mode in modes) {
+        let elements = document.querySelectorAll(".kbdmode-" + modes[mode]);
+        for (let element of elements) {
+            element.classList.add("hidden");
+        }
+    }
+
+    // now only show the elements that match. This allows having multiple
+    // classes to show an element in multiple views.
+    let elements = document.querySelectorAll(".kbdmode-" + modes[value]);
+    for (let element of elements) {
+        element.classList.remove("hidden");
+    }
+}
+
+function keyboardSplitNoteName(value) {
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    let octave = 1;
+    value -= 24; // C1
+    while (value >= notes.length) {
+        value -= notes.length;
+        octave++;
+    }
+    let v = notes[value] + octave;
+    document.getElementById("keyboard_split_point_text").innerHTML = v;
+}
+
 </script>
 
 </head>
@@ -672,6 +709,7 @@ function toggleGrid(name) {
     <div><h2>FP-30 Remote Control</h2></div>
     <div style="padding-bottom:20px;">
     <span id='tab-control' class="tabbutton" onclick="toggleGrid('control')">Control</span>
+    <span id='tab-extra' class="tabbutton" onclick="toggleGrid('extra')">Extra</span>
     <span id='tab-about' class="tabbutton" onclick="toggleGrid('about')">About</span>
     </div>
     <div id="grid-control" class="grid-container">
@@ -728,6 +766,99 @@ function toggleGrid(name) {
             <button style="width:auto;height:auto;margin:12px;" onclick="reload();">Reload</button>
         </div>
 
+    </div>
+
+    <div class="grid-container" id="grid-extra">
+        <div>Keyboard</div>
+        <div>
+            <select id="keyboard_mode" name="keyboard_mode" oninput="toggleKeyboardMode(this.value); setValueByName('keyboard_mode', this.value);">
+                <option value="0">Single</option>
+                <option value="1">Split</option>
+                <option value="2">Dual</option>
+                <option value="3">Twin</option>
+            </select>
+        </div>
+        <div></div>
+
+        <div class="kbdmode-dual">Dual Tone</div>
+        <div class="kbdmode-dual">
+            <select id="tone_dual" name="tones" oninput="setValueByName('tone_dual', this.value);">
+            </select>
+        </div>
+        <div class="kbdmode-dual"></div>
+
+        <div class="kbdmode-dual">Balance</div>
+        <div class="kbdmode-dual">
+            <input type="range" min="-9" max="9" value="0" class="slider" id="dual_balance" oninput="setValueByName('dual_balance', this.value);"/>
+        </div>
+        <div  class="kbdmode-dual" id="dual_balance_text">0</div>
+
+        <div class="kbdmode-dual">Tone2 Shift</div>
+        <div class="kbdmode-dual">
+            <input type="range" min="-2" max="2" value="0" class="slider" id="dual_tone2shift" oninput="setValueByName('dual_tone2shift', this.value);"/>
+        </div>
+        <div  class="kbdmode-dual" id="dual_tone2shift_text">0</div>
+
+        <div class="kbdmode-split">Split Tone</div>
+        <div class="kbdmode-split">
+            <select id="tone_split" name="tones" oninput="setValueByName('tone_split', this.value);">
+            </select>
+        </div>
+        <div class="kbdmode-split"></div>
+
+        <div class="kbdmode-split">Split Point</div>
+        <div class="kbdmode-split">
+            <input type="range" min="35" max="95" value="0" class="slider" id="keyboard_split_point" oninput="setValueByName('keyboard_split_point', this.value);"/>
+        </div>
+        <div  class="kbdmode-split" id="keyboard_split_point_text">B1</div>
+
+        <div class="kbdmode-split">Balance</div>
+        <div class="kbdmode-split">
+            <input type="range" min="-9" max="9" value="0" class="slider" id="split_balance" oninput="setValueByName('split_balance', this.value);"/>
+        </div>
+        <div  class="kbdmode-split" id="split_balance_text">0</div>
+
+        <div class="kbdmode-split">Left Shift</div>
+        <div class="kbdmode-split">
+            <input type="range" min="-2" max="2" value="0" class="slider" id="split_leftshift" oninput="setValueByName('split_leftshift', this.value);"/>
+        </div>
+        <div  class="kbdmode-split" id="split_leftshift_text">0</div>
+
+        <div class="kbdmode-twin">Twin</div>
+        <div class="kbdmode-twin">
+            <select id="twin_mode" name="twin_mode" oninput="setValueByName('twin_mode', this.value);">
+                <option value="0">Pair</option>
+                <option value="1">Individually</option>
+            </select>
+        </div>
+        <div class="kbdmode-twin"></div>
+
+        <div>Key&nbsp;Touch</div>
+        <div>
+            <select id="key_touch" name="key_touch" oninput="setValueByName('key_touch', this.value);">
+                <option value="0">Fix</option>
+                <option value="1">Superlight</option>
+                <option value="2">Light</option>
+                <option value="3">Medium</option>
+                <option value="4">Heavy</option>
+                <option value="5">Superheavy</option>
+            </select>
+        </div>
+        <div></div>
+
+        <div>Speaker</div>
+        <div>
+            <!-- this is read-only - haven't figured the address to write. -->
+            <select id="speaker_mode" name="speaker_mode" disabled>
+                <option value="0">Always On</option>
+                <option value="1">Auto</option>
+            </select>
+        </div>
+        <div></div>
+
+        <div>Tuning</div>
+        <div><input type="range" min="420" max="460" value="440" step="0.1" class="slider" id="tuning" oninput="setValueByName('tuning', this.value);"/></div>
+        <div id="tuning_text">440.0</div>
     </div>
 
     <div class="grid-container" id="grid-about">

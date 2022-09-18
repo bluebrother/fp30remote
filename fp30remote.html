@@ -77,10 +77,15 @@ div {
     padding:10px;
     margin:2px;
     cursor:pointer;
+    border-bottom:4px solid transparent;
 }
 
 .hidden {
     display: none;
+}
+
+.tabactive {
+    border-bottom:4px solid currentcolor;
 }
 
 b {
@@ -659,10 +664,10 @@ function toggleGrid(name) {
         let j = document.getElementById("tab-" + items[item]);
         if (items[item] == name) {
             i.classList.remove("hidden");
-            j.style = "border-bottom:4px solid currentcolor;";
+            j.classList.add("tabactive");
         } else {
             i.classList.add("hidden");
-            j.style = "border-bottom:4px solid transparent;";
+            j.classList.remove("tabactive");
 
         }
     }

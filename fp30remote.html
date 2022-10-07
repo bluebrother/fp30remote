@@ -102,6 +102,11 @@ b {
     b {
         background-color: #666;
     }
+    button {
+        background-color: #333;
+        color: #4d9fff;
+    }
+
 }
     </style>
 
@@ -767,9 +772,11 @@ function keyboardSplitNoteName(value) {
         <div><input type="range" min="0" max="4" value="0" class="slider" id="ambience" oninput="setValueByName('ambience', this.value);"/></div>
         <div id="ambience_text">0</div>
 
+        <div></div>
         <div>
-            <button style="width:auto;height:auto;margin:12px;" onclick="reload();">Reload</button>
+            <button onclick="reload();">Reload</button>
         </div>
+        <div></div>
 
     </div>
 

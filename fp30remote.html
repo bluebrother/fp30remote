@@ -21,6 +21,11 @@ h2 {
 
 div {
     vertical-align: middle;
+    align-items: center;
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 select {
@@ -33,6 +38,7 @@ select {
     border-left: none;
     border-right: none;
     vertical-align: middle;
+    border-bottom: 1px solid #aaa;
 }
 
 input[type=range] {
@@ -46,6 +52,50 @@ input[type=checkbox] {
     margin: 0px;
 }
 
+input {
+    font-weight: bold;
+    font-size: 12pt;
+    border: 0px solid;
+    border-bottom: 1px solid #aaa;
+    width: auto;
+}
+
+/* toggle button */
+.toggle {
+    position: relative ;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+    background-color: white;
+    border-radius: 30px;
+    border: 2px solid #aaa;
+}
+
+.toggle::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: grey;
+    top: 1px;
+    left: 1px;
+    transition: all 0.2s;
+}
+
+.checkbox:checked + .toggle::after {
+    left : 22px;
+    background-color: white;
+}
+
+.checkbox:checked + .toggle {
+    background-color: #4d9fff;
+}
+
+.checkbox {
+    display: none;
+}
+
 button {
     background-color: #fff;
     border: 0px solid;
@@ -54,13 +104,6 @@ button {
     color: #4d9fff;
     padding: 12px;
     align: center;
-}
-
-div {
-    margin-left: 5px;
-    margin-right: 5px;
-    margin-top: 10px;
-    margin-bottom: 10px;
 }
 
 .grid-container {
@@ -110,6 +153,10 @@ b {
     button {
         background-color: #333;
         color: #4d9fff;
+    }
+    .toggle {
+        background-color: #333;
+        border: 2px solid grey;
     }
 
 }
@@ -759,7 +806,7 @@ function keyboardSplitNoteName(value) {
             <select id="metronome_named" name="metronome_named" oninput="setValueByName('metronome_tempo', this.value);">
             </select>
         </div>
-        <div><input type="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/></div>
+        <div><input type="checkbox" class="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/><label for="metronome_status" class="toggle"></label></div>
 
         <div>Metronome</div>
         <div><input type="range" min="10" max="240" value="0" class="slider" id="metronome_speed" oninput="setValueByName('metronome_tempo', this.value);"/></div>

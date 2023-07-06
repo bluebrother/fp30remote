@@ -367,17 +367,16 @@ function processDt1(address, data) {
 }
 
 function setMetronomeNamed(value) {
-    log("setMetronomeNamed");
     let tempovals = [];
     for (const t in tempi_named) {
-        tempovals.push(t);
+        tempovals.push(parseInt(t));
     }
     // do we need to make sure this is sorted?
     tempovals.sort((a, b) => a - b);
     let tempo = tempovals[0];
-    for (const item in tempovals) {
-        if (value >= tempovals[item]) {
-            tempo = tempovals[item];
+    for (const item of tempovals) {
+        if (value >= item) {
+            tempo = item;
         }
     }
     setSelectValue('metronome_named', tempo);
@@ -421,7 +420,7 @@ function setValueByName(name, value) {
     let fraction = addressmap[addr]?.fraction;
     fraction = fraction ? fraction : 0;
     if (addressmap[addr]?.callback) {
-        addressmap[addr].callback(value);
+        addressmap[addr].callback(v);
         } else {
         const t = document.getElementById(name + "_text");
         t ? (t.innerHTML = v.toFixed(fraction)) : null;

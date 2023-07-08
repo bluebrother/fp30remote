@@ -674,40 +674,6 @@ function setup() {
         window.alert("MIDI access not supported by this browser.");
     }
 
-    for (let e of document.getElementsByName("tones")) {
-        const groups = ["Piano", "E-Piano", "Other"];
-        let optgroups = {};
-        for (const optgrp in groups) {
-            let element = document.createElement("optgroup");
-            element.label = groups[optgrp];
-            e.appendChild(element);
-            optgroups[optgrp] = element;
-        }
-        for (const code in soundmap) {
-            const item = soundmap[code];
-            let element = document.createElement("option");
-            element.value = code;
-            element.text = item;
-
-            if (code < 0x4000) {
-                optgroups[0].appendChild(element);
-            }
-            else if (code < 0x8000) {
-                optgroups[1].appendChild(element);
-            }
-            else {
-                optgroups[2].appendChild(element);
-            }
-        }
-    }
-
-    for (const tempo in tempi_named) {
-        let element = document.createElement("option");
-        element.value = tempo;
-        element.text = tempi_named[tempo];
-        document.getElementById("metronome_named").appendChild(element);
-    }
-
     location.search.substr(1).split("&").forEach(function (item) {
         debug = item.split("=")[0] == "debug" ? true : debug;
     });
@@ -763,6 +729,108 @@ function keyboardSplitNoteName(value) {
     document.getElementById("keyboard_split_point_text").innerHTML = v;
 }
 
+function setAttributes(object, map) {
+    for (let i in map) {
+        object.setAttribute(i, map[i]);
+    }
+}
+
+function copyAttributes(element, from, items) {
+    for (let i of items) {
+        element.setAttribute(i, from.getAttribute(i));
+    }
+}
+
+customElements.define('x-range', class extends HTMLElement {
+    connectedCallback() {
+        let element = document.createElement("input");
+        const read = this.getAttribute("read");
+        setAttributes(element, {"type": "range", "class": "slider"});
+        copyAttributes(element, this, ["min", "max", "value"]);
+        setAttributes(element, {"id": read,
+            "oninput": `setValueByName('${this.getAttribute("write") || read}', this.value);`});
+        if (this.getAttribute("step")) {
+            element.setAttribute("step", this.getAttribute("step"));
+        }
+        this.appendChild(element);
+    }
+});
+
+customElements.define('x-select', class extends HTMLElement {
+    connectedCallback() {
+        const read = this.getAttribute("read");
+        const write = this.getAttribute("write") || read;
+
+        let element = document.createElement("select");
+        setAttributes(element, {"id": read,
+            "name": read,
+            "class": this.getAttribute('class'),
+            "oninput": `setValueByName('${write}', this.value);`});
+        const values = this.getAttribute("values");
+        if (values) {
+            const items = values.split(",");
+            for (let i = 0; i < items.length; i++) {
+                let option = document.createElement("option");
+                option.setAttribute("value", i);
+                option.text = items[i].trim();
+                element.appendChild(option);
+            }
+        }
+        this.appendChild(element);
+    }
+});
+
+customElements.define('x-tempi', class extends HTMLElement {
+    connectedCallback() {
+        let select = document.createElement("select");
+        for (const tempo in tempi_named) {
+            let element = document.createElement("option");
+            element.value = tempo;
+            element.text = tempi_named[tempo];
+            select.appendChild(element);
+        }
+        setAttributes(select, {"id": this.getAttribute("read"),
+            "name": this.getAttribute("read"),
+            "oninput": `setValueByName('${this.getAttribute("write")}', this.value);`});
+        this.appendChild(select);
+    }
+});
+
+customElements.define('x-tones', class extends HTMLElement {
+    connectedCallback() {
+        const groups = ["Piano", "E-Piano", "Other"];
+        let optgroups = {};
+        let e = document.createElement("select");
+        setAttributes(e, {"id": this.getAttribute("read"),
+            "name": this.getAttribute("read"),
+            "oninput": `setValueByName('${this.getAttribute("read")}', this.value);`});
+        for (const optgrp in groups) {
+            let element = document.createElement("optgroup");
+            element.label = groups[optgrp];
+            e.appendChild(element);
+            optgroups[optgrp] = element;
+        }
+        for (const code in soundmap) {
+            const item = soundmap[code];
+            let element = document.createElement("option");
+            element.value = code;
+            element.text = item;
+
+            if (code < 0x4000) {
+                optgroups[0].appendChild(element);
+            }
+            else if (code < 0x8000) {
+                optgroups[1].appendChild(element);
+            }
+            else {
+                optgroups[2].appendChild(element);
+            }
+        }
+        this.appendChild(e);
+    }
+});
+
+
 </script>
 
 </head>
@@ -783,130 +851,82 @@ function keyboardSplitNoteName(value) {
         <div id="connection">&nbsp;🛑</div>
 
         <div>Sound</div>
-        <div>
-            <select id="tone" name="tones" oninput="setValueByName('tone', this.value);">
-            </select>
-        </div>
+        <x-tones read="tone"></x-tones>
         <div></div>
         <div>Volume</div>
-        <div><input type="range" min="0" max="100" value="100" class="slider" id="volume" oninput="setValueByName('volume', this.value);"/></div>
+        <x-range min="0" max="100" value="100" read="volume"></x-range>
         <div id="volume_text">100</div>
 
         <div>Metronome</div>
         <div>
-            <select id="metronome_beats" name="metronome_beats" oninput="setValueByName('metronome_beats', this.value);">
-                <option value="0">0 beats</option>
-                <option value="1">2 beats</option>
-                <option value="2">3 beats</option>
-                <option value="3">4 beats</option>
-                <option value="4">5 beats</option>
-                <option value="5">6 beats</option>
-            </select>
-            <select id="metronome_named" name="metronome_named" oninput="setValueByName('metronome_tempo', this.value);">
-            </select>
+            <x-select read="metronome_beats" values="0 beats, 2 beats, 3 beats, 4 beats, 5 beats, 6 beats"></x-select>
+            <x-tempi read="metronome_named" write="metronome_tempo"></x-tempi>
         </div>
         <div><input type="checkbox" class="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/><label for="metronome_status" class="toggle"></label></div>
 
         <div>Metronome</div>
-        <div><input type="range" min="10" max="240" value="0" class="slider" id="metronome_speed" oninput="setValueByName('metronome_tempo', this.value);"/></div>
+        <x-range min="10" max="240" value="0" read="metronome_speed" write="metronome_tempo"></x-range>
         <div id="metronome_speed_text">0</div>
 
         <div>Transpose</div>
-        <div><input type="range" min="-10" max="10" value="0" class="slider" id="transpose" oninput="setValueByName('transpose_set', this.value);"/></div>
+        <x-range min="-10" max="10" value="0" read="transpose" write="transpose_set"></x-range>
         <div id="transpose_text">0</div>
 
         <div>Brilliance</div>
-        <div><input type="range" min="-1" max="1" value="0" class="slider" id="brilliance" oninput="setValueByName('brilliance', this.value);"/></div>
+        <x-range min="-1" max="1" value="0" read="brilliance"></x-range>
         <div id="brilliance_text">0</div>
 
         <div>Ambience</div>
-        <div><input type="range" min="0" max="4" value="0" class="slider" id="ambience" oninput="setValueByName('ambience', this.value);"/></div>
+        <x-range min="0" max="4" value="0" read="ambience"></x-range>
         <div id="ambience_text">0</div>
 
         <div></div>
-        <div>
-            <button onclick="reload();">Reload</button>
-        </div>
+        <div><button onclick="reload();">Reload</button></div>
         <div></div>
 
     </div>
 
     <div class="grid-container" id="grid-extra">
         <div>Keyboard</div>
-        <div>
-            <select id="keyboard_mode" name="keyboard_mode" oninput="toggleKeyboardMode(this.value); setValueByName('keyboard_mode', this.value);">
-                <option value="0">Single</option>
-                <option value="1">Split</option>
-                <option value="2">Dual</option>
-                <option value="3">Twin</option>
-            </select>
-        </div>
+        <x-select read="keyboard_mode" values="Single,Split,Dual,Twin"></x-select>
         <div></div>
 
         <div class="kbdmode-dual">Dual Tone</div>
-        <div class="kbdmode-dual">
-            <select id="tone_dual" name="tones" oninput="setValueByName('tone_dual', this.value);">
-            </select>
-        </div>
+        <x-tones class="kbdmode-dual" read="tone_dual"></x-tones>
         <div class="kbdmode-dual"></div>
 
         <div class="kbdmode-dual">Balance</div>
-        <div class="kbdmode-dual">
-            <input type="range" min="-9" max="9" value="0" class="slider" id="dual_balance" oninput="setValueByName('dual_balance', this.value);"/>
-        </div>
+        <x-range class="kbdmode-dual" min="-9" max="9" value="0" read="dual_balance"></x-range>
         <div  class="kbdmode-dual" id="dual_balance_text">0</div>
 
         <div class="kbdmode-dual">Tone2 Shift</div>
-        <div class="kbdmode-dual">
-            <input type="range" min="-2" max="2" value="0" class="slider" id="dual_tone2shift" oninput="setValueByName('dual_tone2shift', this.value);"/>
-        </div>
+        <x-range class="kbdmode-dual" min="-2" max="2" value="0" read="dual_tone2shift"></x-range>
         <div  class="kbdmode-dual" id="dual_tone2shift_text">0</div>
 
         <div class="kbdmode-split">Split Tone</div>
         <div class="kbdmode-split">
-            <select id="tone_split" name="tones" oninput="setValueByName('tone_split', this.value);">
-            </select>
+        <x-tones class="kbdmode-split" read="tone_split"></x-tones>
         </div>
         <div class="kbdmode-split"></div>
 
         <div class="kbdmode-split">Split Point</div>
-        <div class="kbdmode-split">
-            <input type="range" min="35" max="95" value="0" class="slider" id="keyboard_split_point" oninput="setValueByName('keyboard_split_point', this.value);"/>
-        </div>
+        <x-range class="kbdmode-split" min="35" max="95" value="0" read="keyboard_split_point"></x-range>
         <div  class="kbdmode-split" id="keyboard_split_point_text">B1</div>
 
         <div class="kbdmode-split">Balance</div>
-        <div class="kbdmode-split">
-            <input type="range" min="-9" max="9" value="0" class="slider" id="split_balance" oninput="setValueByName('split_balance', this.value);"/>
-        </div>
+        <x-range class="kbdmode-split" min="-9" max="9" value="0" read="split_balance"></x-range>
         <div  class="kbdmode-split" id="split_balance_text">0</div>
 
         <div class="kbdmode-split">Left Shift</div>
-        <div class="kbdmode-split">
-            <input type="range" min="-2" max="2" value="0" class="slider" id="split_leftshift" oninput="setValueByName('split_leftshift', this.value);"/>
-        </div>
+        <x-range class="kbdmode-split" min="-2" max="2" value="0" read="split_leftshift"></x-range>
         <div  class="kbdmode-split" id="split_leftshift_text">0</div>
 
         <div class="kbdmode-twin">Twin</div>
-        <div class="kbdmode-twin">
-            <select id="twin_mode" name="twin_mode" oninput="setValueByName('twin_mode', this.value);">
-                <option value="0">Pair</option>
-                <option value="1">Individually</option>
-            </select>
-        </div>
+        <x-select class="kbdmode-twin" read="twin_mode" values="Pair,Individual"></x-select>
         <div class="kbdmode-twin"></div>
 
         <div>Key&nbsp;Touch</div>
-        <div>
-            <select id="key_touch" name="key_touch" oninput="setValueByName('key_touch', this.value);">
-                <option value="0">Fix</option>
-                <option value="1">Superlight</option>
-                <option value="2">Light</option>
-                <option value="3">Medium</option>
-                <option value="4">Heavy</option>
-                <option value="5">Superheavy</option>
-            </select>
-        </div>
+        <x-select read="key_touch" values="Fix,Superlight,Light,Medium,Heavy,Superheavy"></x-select>
         <div></div>
 
         <div>Speaker</div>
@@ -920,7 +940,7 @@ function keyboardSplitNoteName(value) {
         <div></div>
 
         <div>Tuning</div>
-        <div><input type="range" min="420" max="460" value="440" step="0.1" class="slider" id="tuning" oninput="setValueByName('tuning', this.value);"/></div>
+        <x-range min="420" max="460" value="440" step="0.1" read="tuning"></x-range>
         <div id="tuning_text">440.0</div>
     </div>
 

@@ -181,68 +181,91 @@ let debug = false;
 const addressmap = {
     0x01000101: {name: 'transpose',
                  offset: 64,
-                 length: 1 },
-    0x01000103: {name: 'recorder_playback_state',
                  length: 1,
-                 type: 'checkbox'},
+                 min: -10,
+                 max: 10,
+                 write: 'transpose_set' },
+    0x01000103: {name: 'recorder_playback_state',
+                 length: 1 },
     0x01000105: {name: 'playback_current_bar',
                  length: 2 },
     0x01000108: {name: 'metronome_speed',
                  length: 2,
+                 min: 10,
+                 max: 240,
+                 write: 'metronome_tempo',
                  callback: setMetronomeNamed },
     0x0100010f: {name: 'metronome_status',
                  length: 1,
-                 type: 'checkbox'},
+                 write: 'metronome_enabled' },
     0x01000110: {name: 'speaker_mode',
                  length: 1,
-                 type: 'list'},
+                 values: ["Always On", "Auto"],
+                 write: null },
     0x01000200: {name: 'keyboard_mode',
                  length: 1,
+                 values: ["Single", "Split", "Dual", "Twin"],
                  callback: toggleKeyboardMode},
     0x01000201: {name: 'keyboard_split_point',
                  length: 1,
+                 min: 35,
+                 max: 95,
                  callback: keyboardSplitNoteName},
     0x01000202: {name: 'split_leftshift',
                  length: 1,
+                 min: -2,
+                 max: 2,
                  offset: 0x40 },
     0x01000203: {name: 'split_balance',
                  length: 1,
+                 min: -9,
+                 max: 9,
                  offset: 0x40 },
     0x01000204: {name: 'dual_tone2shift',
                  length: 1,
+                 min: -2,
+                 max: 2,
                  offset: 0x40},
     0x01000205: {name: 'dual_balance',
                  length: 1,
+                 min: -9,
+                 max: 9,
                  offset: 0x40},
     0x01000206: {name: 'twin_mode',
-                 length: 1,
-                 type: 'list'},
+                 values: ["Pair", "Individual"],
+                 length: 1 },
     0x01000207: {name: 'tone',
-                 length: 3,
-                 type: 'list'},
+                 length: 3 },
     0x0100020a: {name: 'tone_split',
-                 length: 3,
-                 type: 'list'},
+                 length: 3 },
     0x0100020d: {name: 'tone_dual',
-                 length: 3,
-                 type: 'list'},
+                 length: 3 },
     0x01000213: {name: 'volume',
+                 min: 0,
+                 max: 100,
                  length: 1 },
     0x01000218: {name: 'tuning',
                  length: 2,
                  offset: 256 - 4400,
+                 min: 420,
+                 max: 460,
                  fraction: 1},
     0x0100021a: {name: 'ambience',
+                 min: 0,
+                 max: 4,
                  length: 1 },
     0x0100021c: {name: 'brilliance',
                  offset: 0x40,
+                 min: -1,
+                 max: 1,
                  length: 1 },
     0x0100021d: {name: 'key_touch',
-                 length: 1,
-                 type: 'list'},
+                 values: ["Fix", "Superlight", "Light", "Medium", "Heavy", "Superheavy"],
+                 length: 1 },
     0x0100021f: {name: 'metronome_beats',
                  length: 1,
-                 type: 'list'},
+                 values: ["0 beats", "2 beats", "3 beats", "4 beats", "5 beats", "6 beats"],
+                 write: 'metronome_tempo' },
     0x01000300: {name: 'dashboard_push_notification',
                  length: 2 },
     0x01000306: {name: 'dashboard_remote_control',
@@ -254,8 +277,7 @@ const addressmap = {
                  length: 2,
                  callback: setMetronomeNamed},
     0x01000509: {name: 'metronome_enabled',
-                 length: 1,
-                 type: 'checkbox'},
+                 length: 1 },
 };
 
 // build up map with name as key from address map.
@@ -346,10 +368,12 @@ function processDt1(address, data) {
             i += entry.length;
 
             // update HTML with data.
-            if (addressmap[addr].type == 'checkbox') {
+            let e = document.getElementById(entry.name);
+            if (e?.tagName.toLowerCase() == "input"
+                    && e?.getAttribute("type") == "checkbox") {
                 setCheckboxValue(entry.name, value);
             }
-            else if (addressmap[addr].type == 'list') {
+            else if (e?.tagName.toLowerCase() == "select") { // dropdown
                 setSelectValue(entry.name, value);
             }
             else {
@@ -745,12 +769,16 @@ customElements.define('x-range', class extends HTMLElement {
     connectedCallback() {
         let element = document.createElement("input");
         const read = this.getAttribute("read");
+        const min = addressmap[functionmap[read]].min;
+        const max = addressmap[functionmap[read]].max;
         setAttributes(element, {"type": "range", "class": "slider"});
-        copyAttributes(element, this, ["min", "max", "value"]);
         setAttributes(element, {"id": read,
+            "min": min,
+            "max": max,
+            "value": min,
             "oninput": `setValueByName('${this.getAttribute("write") || read}', this.value);`});
-        if (this.getAttribute("step")) {
-            element.setAttribute("step", this.getAttribute("step"));
+        if (addressmap[functionmap[read]].fraction) {
+            element.setAttribute("step", 1 / (10 ** addressmap[functionmap[read]].fraction));
         }
         this.appendChild(element);
     }
@@ -766,15 +794,12 @@ customElements.define('x-select', class extends HTMLElement {
             "name": read,
             "class": this.getAttribute('class'),
             "oninput": `setValueByName('${write}', this.value);`});
-        const values = this.getAttribute("values");
-        if (values) {
-            const items = values.split(",");
-            for (let i = 0; i < items.length; i++) {
-                let option = document.createElement("option");
-                option.setAttribute("value", i);
-                option.text = items[i].trim();
-                element.appendChild(option);
-            }
+        const items = addressmap[functionmap[read]].values;
+        for (let i = 0; i < items.length; i++) {
+            let option = document.createElement("option");
+            option.setAttribute("value", i);
+            option.text = items[i].trim();
+            element.appendChild(option);
         }
         this.appendChild(element);
     }
@@ -854,30 +879,30 @@ customElements.define('x-tones', class extends HTMLElement {
         <x-tones read="tone"></x-tones>
         <div></div>
         <div>Volume</div>
-        <x-range min="0" max="100" value="100" read="volume"></x-range>
+        <x-range read="volume"></x-range>
         <div id="volume_text">100</div>
 
         <div>Metronome</div>
         <div>
-            <x-select read="metronome_beats" values="0 beats, 2 beats, 3 beats, 4 beats, 5 beats, 6 beats"></x-select>
+            <x-select read="metronome_beats"></x-select>
             <x-tempi read="metronome_named" write="metronome_tempo"></x-tempi>
         </div>
         <div><input type="checkbox" class="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/><label for="metronome_status" class="toggle"></label></div>
 
         <div>Metronome</div>
-        <x-range min="10" max="240" value="0" read="metronome_speed" write="metronome_tempo"></x-range>
+        <x-range read="metronome_speed" write="metronome_tempo"></x-range>
         <div id="metronome_speed_text">0</div>
 
         <div>Transpose</div>
-        <x-range min="-10" max="10" value="0" read="transpose" write="transpose_set"></x-range>
+        <x-range read="transpose" write="transpose_set"></x-range>
         <div id="transpose_text">0</div>
 
         <div>Brilliance</div>
-        <x-range min="-1" max="1" value="0" read="brilliance"></x-range>
+        <x-range read="brilliance"></x-range>
         <div id="brilliance_text">0</div>
 
         <div>Ambience</div>
-        <x-range min="0" max="4" value="0" read="ambience"></x-range>
+        <x-range read="ambience"></x-range>
         <div id="ambience_text">0</div>
 
         <div></div>
@@ -888,7 +913,7 @@ customElements.define('x-tones', class extends HTMLElement {
 
     <div class="grid-container" id="grid-extra">
         <div>Keyboard</div>
-        <x-select read="keyboard_mode" values="Single,Split,Dual,Twin"></x-select>
+        <x-select read="keyboard_mode"></x-select>
         <div></div>
 
         <div class="kbdmode-dual">Dual Tone</div>
@@ -896,11 +921,11 @@ customElements.define('x-tones', class extends HTMLElement {
         <div class="kbdmode-dual"></div>
 
         <div class="kbdmode-dual">Balance</div>
-        <x-range class="kbdmode-dual" min="-9" max="9" value="0" read="dual_balance"></x-range>
+        <x-range class="kbdmode-dual" read="dual_balance"></x-range>
         <div  class="kbdmode-dual" id="dual_balance_text">0</div>
 
         <div class="kbdmode-dual">Tone2 Shift</div>
-        <x-range class="kbdmode-dual" min="-2" max="2" value="0" read="dual_tone2shift"></x-range>
+        <x-range class="kbdmode-dual" read="dual_tone2shift"></x-range>
         <div  class="kbdmode-dual" id="dual_tone2shift_text">0</div>
 
         <div class="kbdmode-split">Split Tone</div>
@@ -910,23 +935,23 @@ customElements.define('x-tones', class extends HTMLElement {
         <div class="kbdmode-split"></div>
 
         <div class="kbdmode-split">Split Point</div>
-        <x-range class="kbdmode-split" min="35" max="95" value="0" read="keyboard_split_point"></x-range>
+        <x-range class="kbdmode-split" read="keyboard_split_point"></x-range>
         <div  class="kbdmode-split" id="keyboard_split_point_text">B1</div>
 
         <div class="kbdmode-split">Balance</div>
-        <x-range class="kbdmode-split" min="-9" max="9" value="0" read="split_balance"></x-range>
+        <x-range class="kbdmode-split" read="split_balance"></x-range>
         <div  class="kbdmode-split" id="split_balance_text">0</div>
 
         <div class="kbdmode-split">Left Shift</div>
-        <x-range class="kbdmode-split" min="-2" max="2" value="0" read="split_leftshift"></x-range>
+        <x-range class="kbdmode-split" read="split_leftshift"></x-range>
         <div  class="kbdmode-split" id="split_leftshift_text">0</div>
 
         <div class="kbdmode-twin">Twin</div>
-        <x-select class="kbdmode-twin" read="twin_mode" values="Pair,Individual"></x-select>
+        <x-select class="kbdmode-twin" read="twin_mode"></x-select>
         <div class="kbdmode-twin"></div>
 
         <div>Key&nbsp;Touch</div>
-        <x-select read="key_touch" values="Fix,Superlight,Light,Medium,Heavy,Superheavy"></x-select>
+        <x-select read="key_touch"></x-select>
         <div></div>
 
         <div>Speaker</div>
@@ -940,7 +965,7 @@ customElements.define('x-tones', class extends HTMLElement {
         <div></div>
 
         <div>Tuning</div>
-        <x-range min="420" max="460" value="440" step="0.1" read="tuning"></x-range>
+        <x-range read="tuning"></x-range>
         <div id="tuning_text">440.0</div>
     </div>
 

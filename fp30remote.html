@@ -170,6 +170,17 @@ let midiDevices = {};
 
 let debug = false;
 
+const tempi_named = {
+    40: "Largo",
+    60: "Larghetto",
+    66: "Adagio",
+    76: "Andante",
+    108: "Moderato",
+    120: "Allegro",
+    168: "Presto",
+    200: "Prestissimo"
+};
+
 /*
  * Roland FP-30 Dashboard Address Map.
  *
@@ -194,6 +205,7 @@ const addressmap = {
                  min: 10,
                  max: 240,
                  write: 'metronome_tempo',
+                 values: tempi_named,
                  callback: setMetronomeNamed },
     0x0100010f: {name: 'metronome_status',
                  length: 1,
@@ -322,17 +334,6 @@ const soundmap = {
     0x008013: "Acoustic Bass + Cymbal",
     0x008014: "Fingered Bass",
     0x008015: "Thum Voice"
-};
-
-const tempi_named = {
-    40: "Largo",
-    60: "Larghetto",
-    66: "Adagio",
-    76: "Andante",
-    108: "Moderato",
-    120: "Allegro",
-    168: "Presto",
-    200: "Prestissimo"
 };
 
 function checksum(data) {
@@ -787,15 +788,17 @@ customElements.define('x-range', class extends HTMLElement {
 customElements.define('x-select', class extends HTMLElement {
     connectedCallback() {
         const name = this.getAttribute("name");
-        const write = addressmap[functionmap[name]].write || name;
+        // forname: this stands in for the selection (parameter) forname.
+        const forname = this.getAttribute("for") || name;
+        const write = addressmap[functionmap[forname]].write || forname;
 
         let element = document.createElement("select");
         setAttributes(element, {"id": name,
             "name": name,
             "class": this.getAttribute('class'),
             "oninput": `setValueByName('${write}', this.value);`});
-        const items = addressmap[functionmap[name]].values;
-        for (let i = 0; i < items.length; i++) {
+        const items = addressmap[functionmap[forname]].values;
+        for (let i in items) {
             let option = document.createElement("option");
             option.setAttribute("value", i);
             option.text = items[i].trim();
@@ -821,22 +824,6 @@ customElements.define('x-checkbox', class extends HTMLElement {
         let label = document.createElement("label");
         setAttributes(label, {"for": name, "class": "toggle"});
         this.appendChild(label);
-    }
-});
-
-customElements.define('x-tempi', class extends HTMLElement {
-    connectedCallback() {
-        let select = document.createElement("select");
-        for (const tempo in tempi_named) {
-            let element = document.createElement("option");
-            element.value = tempo;
-            element.text = tempi_named[tempo];
-            select.appendChild(element);
-        }
-        setAttributes(select, {"id": this.getAttribute("read"),
-            "name": this.getAttribute("read"),
-            "oninput": `setValueByName('${this.getAttribute("write")}', this.value);`});
-        this.appendChild(select);
     }
 });
 
@@ -903,8 +890,8 @@ customElements.define('x-tones', class extends HTMLElement {
 
         <div>Metronome</div>
         <div>
-            <x-tempi read="metronome_named" write="metronome_tempo"></x-tempi>
             <x-select name="metronome_beats"></x-select>
+            <x-select name="metronome_named" for="metronome_speed"></x-tempi>
         </div>
         <x-checkbox name="metronome_status" value="0"></x-checkbox>
 

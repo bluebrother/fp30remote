@@ -805,6 +805,25 @@ customElements.define('x-select', class extends HTMLElement {
     }
 });
 
+customElements.define('x-checkbox', class extends HTMLElement {
+    connectedCallback() {
+        const name = this.getAttribute("name");
+        const write = addressmap[functionmap[name]].write || name;
+        const value = this.getAttribute("value") || "this.value";
+
+        let element = document.createElement("input");
+        setAttributes(element, {"id": name,
+            "name": name,
+            "type": "checkbox",
+            "class": `checkbox ${this.getAttribute('class')}`,
+            "onchange": `setValueByName('${write}', ${value});`});
+        this.appendChild(element);
+        let label = document.createElement("label");
+        setAttributes(label, {"for": name, "class": "toggle"});
+        this.appendChild(label);
+    }
+});
+
 customElements.define('x-tempi', class extends HTMLElement {
     connectedCallback() {
         let select = document.createElement("select");
@@ -887,7 +906,7 @@ customElements.define('x-tones', class extends HTMLElement {
             <x-select read="metronome_beats"></x-select>
             <x-tempi read="metronome_named" write="metronome_tempo"></x-tempi>
         </div>
-        <div><input type="checkbox" class="checkbox" id="metronome_status" name="metronome_status" onchange="setValueByName('metronome_enabled', 0);"/><label for="metronome_status" class="toggle"></label></div>
+        <x-checkbox name="metronome_status" value="0"></x-checkbox>
 
         <div>Metronome</div>
         <x-range read="metronome_speed" write="metronome_tempo"></x-range>

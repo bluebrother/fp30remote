@@ -768,17 +768,18 @@ function copyAttributes(element, from, items) {
 customElements.define('x-range', class extends HTMLElement {
     connectedCallback() {
         let element = document.createElement("input");
-        const read = this.getAttribute("read");
-        const min = addressmap[functionmap[read]].min;
-        const max = addressmap[functionmap[read]].max;
+        const name = this.getAttribute("name");
+        const write = addressmap[functionmap[name]].write || name;
+        const min = addressmap[functionmap[name]].min;
+        const max = addressmap[functionmap[name]].max;
         setAttributes(element, {"type": "range", "class": "slider"});
-        setAttributes(element, {"id": read,
+        setAttributes(element, {"id": name,
             "min": min,
             "max": max,
             "value": min,
-            "oninput": `setValueByName('${this.getAttribute("write") || read}', this.value);`});
-        if (addressmap[functionmap[read]].fraction) {
-            element.setAttribute("step", 1 / (10 ** addressmap[functionmap[read]].fraction));
+            "oninput": `setValueByName('${write}', this.value);`});
+        if (addressmap[functionmap[name]].fraction) {
+            element.setAttribute("step", 1 / (10 ** addressmap[functionmap[name]].fraction));
         }
         this.appendChild(element);
     }
@@ -786,15 +787,15 @@ customElements.define('x-range', class extends HTMLElement {
 
 customElements.define('x-select', class extends HTMLElement {
     connectedCallback() {
-        const read = this.getAttribute("read");
-        const write = this.getAttribute("write") || read;
+        const name = this.getAttribute("name");
+        const write = addressmap[functionmap[name]].write || name;
 
         let element = document.createElement("select");
-        setAttributes(element, {"id": read,
-            "name": read,
+        setAttributes(element, {"id": name,
+            "name": name,
             "class": this.getAttribute('class'),
             "oninput": `setValueByName('${write}', this.value);`});
-        const items = addressmap[functionmap[read]].values;
+        const items = addressmap[functionmap[name]].values;
         for (let i = 0; i < items.length; i++) {
             let option = document.createElement("option");
             option.setAttribute("value", i);
@@ -845,9 +846,9 @@ customElements.define('x-tones', class extends HTMLElement {
         const groups = ["Piano", "E-Piano", "Other"];
         let optgroups = {};
         let e = document.createElement("select");
-        setAttributes(e, {"id": this.getAttribute("read"),
-            "name": this.getAttribute("read"),
-            "oninput": `setValueByName('${this.getAttribute("read")}', this.value);`});
+        setAttributes(e, {"id": this.getAttribute("name"),
+            "name": this.getAttribute("name"),
+            "oninput": `setValueByName('${this.getAttribute("name")}', this.value);`});
         for (const optgrp in groups) {
             let element = document.createElement("optgroup");
             element.label = groups[optgrp];
@@ -895,33 +896,33 @@ customElements.define('x-tones', class extends HTMLElement {
         <div id="connection">&nbsp;🛑</div>
 
         <div>Sound</div>
-        <x-tones read="tone"></x-tones>
+        <x-tones name="tone"></x-tones>
         <div></div>
         <div>Volume</div>
-        <x-range read="volume"></x-range>
+        <x-range name="volume"></x-range>
         <div id="volume_text">100</div>
 
         <div>Metronome</div>
         <div>
-            <x-select read="metronome_beats"></x-select>
             <x-tempi read="metronome_named" write="metronome_tempo"></x-tempi>
+            <x-select name="metronome_beats"></x-select>
         </div>
         <x-checkbox name="metronome_status" value="0"></x-checkbox>
 
         <div>Metronome</div>
-        <x-range read="metronome_speed" write="metronome_tempo"></x-range>
+        <x-range name="metronome_speed"></x-range>
         <div id="metronome_speed_text">0</div>
 
         <div>Transpose</div>
-        <x-range read="transpose" write="transpose_set"></x-range>
+        <x-range name="transpose"></x-range>
         <div id="transpose_text">0</div>
 
         <div>Brilliance</div>
-        <x-range read="brilliance"></x-range>
+        <x-range name="brilliance"></x-range>
         <div id="brilliance_text">0</div>
 
         <div>Ambience</div>
-        <x-range read="ambience"></x-range>
+        <x-range name="ambience"></x-range>
         <div id="ambience_text">0</div>
 
         <div></div>
@@ -932,45 +933,45 @@ customElements.define('x-tones', class extends HTMLElement {
 
     <div class="grid-container" id="grid-extra">
         <div>Keyboard</div>
-        <x-select read="keyboard_mode"></x-select>
+        <x-select name="keyboard_mode"></x-select>
         <div></div>
 
         <div class="kbdmode-dual">Dual Tone</div>
-        <x-tones class="kbdmode-dual" read="tone_dual"></x-tones>
+        <x-tones class="kbdmode-dual" name="tone_dual"></x-tones>
         <div class="kbdmode-dual"></div>
 
         <div class="kbdmode-dual">Balance</div>
-        <x-range class="kbdmode-dual" read="dual_balance"></x-range>
+        <x-range class="kbdmode-dual" name="dual_balance"></x-range>
         <div  class="kbdmode-dual" id="dual_balance_text">0</div>
 
         <div class="kbdmode-dual">Tone2 Shift</div>
-        <x-range class="kbdmode-dual" read="dual_tone2shift"></x-range>
+        <x-range class="kbdmode-dual" name="dual_tone2shift"></x-range>
         <div  class="kbdmode-dual" id="dual_tone2shift_text">0</div>
 
         <div class="kbdmode-split">Split Tone</div>
         <div class="kbdmode-split">
-        <x-tones class="kbdmode-split" read="tone_split"></x-tones>
+        <x-tones class="kbdmode-split" name="tone_split"></x-tones>
         </div>
         <div class="kbdmode-split"></div>
 
         <div class="kbdmode-split">Split Point</div>
-        <x-range class="kbdmode-split" read="keyboard_split_point"></x-range>
+        <x-range class="kbdmode-split" name="keyboard_split_point"></x-range>
         <div  class="kbdmode-split" id="keyboard_split_point_text">B1</div>
 
         <div class="kbdmode-split">Balance</div>
-        <x-range class="kbdmode-split" read="split_balance"></x-range>
+        <x-range class="kbdmode-split" name="split_balance"></x-range>
         <div  class="kbdmode-split" id="split_balance_text">0</div>
 
         <div class="kbdmode-split">Left Shift</div>
-        <x-range class="kbdmode-split" read="split_leftshift"></x-range>
+        <x-range class="kbdmode-split" name="split_leftshift"></x-range>
         <div  class="kbdmode-split" id="split_leftshift_text">0</div>
 
         <div class="kbdmode-twin">Twin</div>
-        <x-select class="kbdmode-twin" read="twin_mode"></x-select>
+        <x-select class="kbdmode-twin" name="twin_mode"></x-select>
         <div class="kbdmode-twin"></div>
 
         <div>Key&nbsp;Touch</div>
-        <x-select read="key_touch"></x-select>
+        <x-select name="key_touch"></x-select>
         <div></div>
 
         <div>Speaker</div>
@@ -984,7 +985,7 @@ customElements.define('x-tones', class extends HTMLElement {
         <div></div>
 
         <div>Tuning</div>
-        <x-range read="tuning"></x-range>
+        <x-range name="tuning"></x-range>
         <div id="tuning_text">440.0</div>
     </div>
 

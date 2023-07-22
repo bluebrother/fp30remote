@@ -797,6 +797,9 @@ customElements.define('x-select', class extends HTMLElement {
             "name": name,
             "class": this.getAttribute('class'),
             "oninput": `setValueByName('${write}', this.value);`});
+        if (addressmap[functionmap[forname]].write === null) {
+            element.setAttribute("disabled", "");
+        }
         const items = addressmap[functionmap[forname]].values;
         for (let i in items) {
             let option = document.createElement("option");
@@ -963,10 +966,7 @@ customElements.define('x-tones', class extends HTMLElement {
         <div>Speaker</div>
         <div>
             <!-- this is read-only - haven't figured the address to write. -->
-            <select id="speaker_mode" name="speaker_mode" disabled>
-                <option value="0">Always On</option>
-                <option value="1">Auto</option>
-            </select>
+            <x-select name="speaker_mode" for="speaker_mode"></x-range>
         </div>
         <div></div>
 

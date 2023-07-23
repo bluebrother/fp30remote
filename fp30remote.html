@@ -181,6 +181,52 @@ const tempi_named = {
     200: "Prestissimo"
 };
 
+// Maps 3 byte parameter to tone name. Value is the actual numeric value (i.e.
+// 7bit-in-8bit), not the byte sequence on the MIDI connection.
+const soundmap = {
+    "Piano": {
+        0x000000: "Grand Piano 1",
+        0x000001: "Grand Piano 2",
+        0x000002: "Grand Piano 3",
+        0x000003: "Ragtime Piano",
+        0x000004: "Harpsichord 1",
+        0x000005: "Harpsichord 2"
+    },
+    "E-Piano": {
+        0x004000: "E-Piano 1",
+        0x004001: "E-Piano 2",
+        0x004002: "E-Piano 3",
+        0x004003: "Clavinova",
+        0x004004: "Vibraphone",
+        0x004005: "Celesta",
+        0x004006: "Synth Bell"
+    },
+    "Other": {
+        0x008000: "Strings 1",
+        0x008001: "Strings 2",
+        0x008002: "Harp",
+        0x008003: "Jazz Organ 1",
+        0x008004: "Jazz Organ 2",
+        0x008005: "Church Organ 1",
+        0x008006: "Church Organ 2",
+        0x008007: "Accordion",
+        0x008008: "Choir 1",
+        0x008009: "Jazz Scat",
+        0x00800a: "Choir 2",
+        0x00800b: "Choir 3",
+        0x00800c: "Synth Pad",
+        0x00800d: "Nylon string Guitar",
+        0x00800e: "Steel string Guitar",
+        0x00800f: "Decay Strings",
+        0x008010: "Decay Choir",
+        0x008011: "Decay Choir Pad",
+        0x008012: "Acoustic Bass",
+        0x008013: "Acoustic Bass + Cymbal",
+        0x008014: "Fingered Bass",
+        0x008015: "Thum Voice"
+    }
+};
+
 /*
  * Roland FP-30 Dashboard Address Map.
  *
@@ -247,10 +293,13 @@ const addressmap = {
                  values: ["Pair", "Individual"],
                  length: 1 },
     0x01000207: {name: 'tone',
+                 values: soundmap,
                  length: 3 },
     0x0100020a: {name: 'tone_split',
+                 values: soundmap,
                  length: 3 },
     0x0100020d: {name: 'tone_dual',
+                 values: soundmap,
                  length: 3 },
     0x01000213: {name: 'volume',
                  min: 0,
@@ -297,44 +346,6 @@ for (const v in addressmap) {
     functionmap[addressmap[v].name] = v;
 };
 
-// Maps 3 byte parameter to tone name. Value interpreted as byte sequence.
-const soundmap = {
-    0x000000: "Grand Piano 1",
-    0x000001: "Grand Piano 2",
-    0x000002: "Grand Piano 3",
-    0x000003: "Ragtime Piano",
-    0x000004: "Harpsichord 1",
-    0x000005: "Harpsichord 2",
-    0x004000: "E-Piano 1",
-    0x004001: "E-Piano 2",
-    0x004002: "E-Piano 3",
-    0x004003: "Clavinova",
-    0x004004: "Vibraphone",
-    0x004005: "Celesta",
-    0x004006: "Synth Bell",
-    0x008000: "Strings 1",
-    0x008001: "Strings 2",
-    0x008002: "Harp",
-    0x008003: "Jazz Organ 1",
-    0x008004: "Jazz Organ 2",
-    0x008005: "Church Organ 1",
-    0x008006: "Church Organ 2",
-    0x008007: "Accordion",
-    0x008008: "Choir 1",
-    0x008009: "Jazz Scat",
-    0x00800a: "Choir 2",
-    0x00800b: "Choir 3",
-    0x00800c: "Synth Pad",
-    0x00800d: "Nylon string Guitar",
-    0x00800e: "Steel string Guitar",
-    0x00800f: "Decay Strings",
-    0x008010: "Decay Choir",
-    0x008011: "Decay Choir Pad",
-    0x008012: "Acoustic Bass",
-    0x008013: "Acoustic Bass + Cymbal",
-    0x008014: "Fingered Bass",
-    0x008015: "Thum Voice"
-};
 
 function checksum(data) {
     // Roland SysEx checksum
@@ -785,6 +796,23 @@ customElements.define('x-range', class extends HTMLElement {
     }
 });
 
+function addOptionItems(element, items) {
+    for (let i in items) {
+        if (typeof items[i] === 'object') {
+            let optgroup = document.createElement("optgroup");
+            optgroup.label = i;
+            addOptionItems(optgroup, items[i]);
+            element.appendChild(optgroup)
+        }
+        else {
+            let option = document.createElement("option");
+            option.setAttribute("value", i);
+            option.text = items[i].trim();
+            element.appendChild(option);
+        }
+    }
+}
+
 customElements.define('x-select', class extends HTMLElement {
     connectedCallback() {
         const name = this.getAttribute("name");
@@ -800,13 +828,7 @@ customElements.define('x-select', class extends HTMLElement {
         if (addressmap[functionmap[forname]].write === null) {
             element.setAttribute("disabled", "");
         }
-        const items = addressmap[functionmap[forname]].values;
-        for (let i in items) {
-            let option = document.createElement("option");
-            option.setAttribute("value", i);
-            option.text = items[i].trim();
-            element.appendChild(option);
-        }
+        addOptionItems(element, addressmap[functionmap[forname]].values);
         this.appendChild(element);
     }
 });
@@ -830,41 +852,6 @@ customElements.define('x-checkbox', class extends HTMLElement {
     }
 });
 
-customElements.define('x-tones', class extends HTMLElement {
-    connectedCallback() {
-        const groups = ["Piano", "E-Piano", "Other"];
-        let optgroups = {};
-        let e = document.createElement("select");
-        setAttributes(e, {"id": this.getAttribute("name"),
-            "name": this.getAttribute("name"),
-            "oninput": `setValueByName('${this.getAttribute("name")}', this.value);`});
-        for (const optgrp in groups) {
-            let element = document.createElement("optgroup");
-            element.label = groups[optgrp];
-            e.appendChild(element);
-            optgroups[optgrp] = element;
-        }
-        for (const code in soundmap) {
-            const item = soundmap[code];
-            let element = document.createElement("option");
-            element.value = code;
-            element.text = item;
-
-            if (code < 0x4000) {
-                optgroups[0].appendChild(element);
-            }
-            else if (code < 0x8000) {
-                optgroups[1].appendChild(element);
-            }
-            else {
-                optgroups[2].appendChild(element);
-            }
-        }
-        this.appendChild(e);
-    }
-});
-
-
 </script>
 
 </head>
@@ -885,7 +872,7 @@ customElements.define('x-tones', class extends HTMLElement {
         <div id="connection">&nbsp;🛑</div>
 
         <div>Sound</div>
-        <x-tones name="tone"></x-tones>
+        <x-select name="tone"></x-select>
         <div></div>
         <div>Volume</div>
         <x-range name="volume"></x-range>
@@ -926,7 +913,7 @@ customElements.define('x-tones', class extends HTMLElement {
         <div></div>
 
         <div class="kbdmode-dual">Dual Tone</div>
-        <x-tones class="kbdmode-dual" name="tone_dual"></x-tones>
+        <x-select class="kbdmode-dual" name="tone_dual"></x-select>
         <div class="kbdmode-dual"></div>
 
         <div class="kbdmode-dual">Balance</div>
@@ -939,7 +926,7 @@ customElements.define('x-tones', class extends HTMLElement {
 
         <div class="kbdmode-split">Split Tone</div>
         <div class="kbdmode-split">
-        <x-tones class="kbdmode-split" name="tone_split"></x-tones>
+        <x-select class="kbdmode-split" name="tone_split"></x-select>
         </div>
         <div class="kbdmode-split"></div>
 

@@ -576,7 +576,6 @@ function initDevices(midi) {
         log("add MIDI output:", output.value.name);
     }
 
-    // TODO: don't repopulate options if number of interfaces didn't change.
     let select = document.getElementById("midiInterface");
     let preselect = null;
     if (select.selectedIndex > 0) {
@@ -584,11 +583,6 @@ function initDevices(midi) {
         preselect = select.value;
         log("preselected:", preselect);
     }
-    for (let i = select.options.length - 1; i > 0; i--) {
-        log("remove old entries:", i, select.options[i]?.value);
-        select.remove(i);
-    }
-
     for (let cookie of document.cookie.split(";")) {
         let [key, value] = cookie.trim().split("=");
         if (key == "midi") {
@@ -676,6 +670,41 @@ function sendDt1(address, data) {
     }
 }
 
+function onMidiPortChanged(midi, port) {
+    let select = document.getElementById("midiInterface");
+    if (port.state == "disconnected") {
+        for (let i in select.options) {
+            if (select.options[i].value == port.name) {
+                select.remove(i);
+            }
+        }
+        if (midioutput == midiDevices[port.name].output) {
+            selectedInterface(null);
+        }
+        midiDevices[port.name].input = null;
+        midiDevices[port.name].output = null;
+        log("remove dropdown entry:", port.name);
+    }
+    if (port.state == "connected") {
+        if (!(port.name in midiDevices)) {
+            midiDevices[port.name] = {};
+        }
+        else if (midiDevices[port.name].input && midiDevices[port.name].output) {
+            // already set up, just changed connection state.
+            return;
+        }
+        midiDevices[port.name][port.type] = port;
+        if (midiDevices[port.name].input && midiDevices[port.name].output) {
+            // only add items that have both input and output.
+            let element = document.createElement("option");
+            element.textContent = port.name;
+            element.value = port.name
+            select.appendChild(element);
+            log("add new dropdown entry:", port.name);
+        }
+    }
+}
+
 function onMidiSuccess(midiAccess) {
     log("MIDI connected.");
     midi = midiAccess
@@ -686,7 +715,7 @@ function onMidiSuccess(midiAccess) {
         log("State change", event.port.state, ":",
             event.port.name, event.port.manufacturer,
             event.port.type, event.port.connection);
-        initDevices(midi);
+        onMidiPortChanged(midi, event.port);
      };
 }
 

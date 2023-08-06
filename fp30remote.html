@@ -450,9 +450,14 @@ function setSelectValue(objname, value) {
 
 /* send selected value to instrument */
 function setValueByName(name, value) {
-    let v = parseFloat(value);
     const addr = functionmap[name];
+    setValueByAddress(addr, value);
+}
+
+function setValueByAddress(addr, value) {
+    let v = parseFloat(value);
     let fraction = addressmap[addr]?.fraction;
+    let name = addressmap[addr].name;
     fraction = fraction ? fraction : 0;
     if (addressmap[addr]?.callback) {
         addressmap[addr].callback(v);
@@ -496,53 +501,55 @@ function arrayIsEqual(data, expected) {
 }
 
 function onMidiMessage(event) {
-    if (event.data.length == 15
-        && arrayIsEqual(event.data, [0xf0, 0x7e, 0x10, 0x06, 0x02])) {
+    processMidiMessage(event.data);
+}
+
+function processMidiMessage(data) {
+    log("processMidiMessage", arrayToHex(data));
+    if (data.length == 15
+        && arrayIsEqual(data, [0xf0, 0x7e, 0x10, 0x06, 0x02])) {
         // Expect identity response for FP-30.
         const expected = [0xf0, 0x7e, 0x10, 0x06, 0x02, 0x41, 0x42, 0x00, 0x00,
                           0x20, 0x00, 0x01, 0x00, 0x00, 0xf7];
 
-        if (event.data[5] != 0x41) {
+        if (data[5] != 0x41) {
             alert("Not a Roland instrument. Aborting.");
             return;
         }
-        if (!arrayIsEqual(event.data, expected)) {
+        if (!arrayIsEqual(data, expected)) {
             let go = confirm("Unknown instrument!\n\n"
                   + "Instrument returned unexpected identification data.\n"
                   + "Expected: " + arrayToHex(expected) + "\n"
-                  + "Got: " + arrayToHex(event.data) + "\n\n"
+                  + "Got: " + arrayToHex(data) + "\n\n"
                   + "Abort?");
             if (go) {
                 return;
             }
         }
+        else {
+            log("got identify, ok");
+        }
         // Enable instrument remote control.
-        sendDt1(0x01000300, [0x00, 0x01]);
-        sendDt1(0x01000306, [0x01]);
-        reload();
+        initRemote();
         return;
     }
 
-    if (!midioutput || event.data.length <= 13) {
-        return;
-    }
-    log("sysex, len: ", event.data.length);
-    // have useful data.
-    if (arrayIsEqual(event.data, [0xf0, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28])) {
+    if (data.length > 13
+        && arrayIsEqual(data, [0xf0, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28])) {
         // ok, is Roland "Piano Partner" message.
-        const cmd = event.data[7];
-        const address = event.data[8] << 24 | event.data[9] << 16
-                        | event.data[10] << 8 | event.data[11];
-        const length = event.data.length - 14;
+        const cmd = data[7];
+        const address = data[8] << 24 | data[9] << 16
+                        | data[10] << 8 | data[11];
+        const length = data.length - 14;
 
         if (cmd == 0x11) {
             log("RQ1: address", address.toString(16), "length", length);
             // length: only up to 127 for now. Ignore everything else.
-            // length = event.data[15];
+            // length = data[15];
         }
         if (cmd == 0x12) {
             log("Received DT1: address", address.toString(16), "length", length);
-            processDt1(address, event.data.slice(12, -2));
+            processDt1(address, data.slice(12, -2));
         }
     }
 }
@@ -624,18 +631,31 @@ async function selectedInterface(value) {
     midiinput.onmidimessage = onMidiMessage;
     await new Promise(r => setTimeout(r, 100)); // sleep 100ms
     if (midioutput) {
-        log("Sending MIDI identity request");
-        const msg = [0xf0, 0x7e, 0x10, 0x06, 0x01, 0xf7];
-        midioutput.send(msg);
+        sendIdentityRequest();
     }
 }
 
-function reload() {
+function initRemote() {
+    sendDt1(0x01000306, [0x01]);
+    sendDt1(0x01000300, [0x00, 0x01]);
+
     sendRq1(0x01000100, 0x40);
     sendRq1(0x01000200, 0x7f);
     sendRq1(0x01000300, 0x20);
     sendRq1(0x01000500, 0x20);
     sendRq1(0x01000700, 0x20);
+}
+
+function sendMidi(msg) {
+    if (midioutput) {
+        midioutput.send(msg);
+    }
+}
+
+function sendIdentityRequest() {
+    log("Sending MIDI identity request");
+    const msg = [0xf0, 0x7e, 0x10, 0x06, 0x01, 0xf7];
+    sendMidi(msg);
 }
 
 function sendRq1(address, size) {
@@ -649,10 +669,8 @@ function sendRq1(address, size) {
     }
     msg.push(checksum(msg.slice(8)));
     msg.push(0xf7);
-    log("sendRq1", msg);
-    if (midioutput) {
-        midioutput.send(msg);
-    }
+    log("sendRq1", arrayToHex(msg));
+    sendMidi(msg);
 }
 
 function sendDt1(address, data) {
@@ -665,9 +683,7 @@ function sendDt1(address, data) {
     msg.push(checksum(msg.slice(8)));
     msg.push(0xf7);
     log("sendDt1:", arrayToHex(msg));
-    if (midioutput) {
-        midioutput.send(msg);
-    }
+    sendMidi(msg);
 }
 
 function onMidiPortChanged(midi, port) {
@@ -931,7 +947,7 @@ customElements.define('x-checkbox', class extends HTMLElement {
         <div id="ambience_text">0</div>
 
         <div></div>
-        <div><button onclick="reload();">Reload</button></div>
+        <div><button onclick="sendIdentityRequest();">Reload</button></div>
         <div></div>
 
     </div>

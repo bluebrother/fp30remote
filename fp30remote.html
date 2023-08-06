@@ -168,6 +168,8 @@ let midi = null;
 let midioutput = null;
 let midiDevices = {};
 
+let initstatus = 0;
+
 let debug = false;
 
 const tempi_named = {
@@ -358,6 +360,16 @@ function checksum(data) {
 
 function processDt1(address, data) {
     log("processDt1:", address.toString(16), "(", data.length, ")", arrayToHex(data));
+    if ((address & 0xff) == 0x00) {
+        // on startup we read several areas with last address byte 0.
+        // Use this to track if we got all responses.
+        initstatus |= 1 << ((address & 0xf00) >> 8);
+        log("initstatus:", initstatus);
+
+        if (initstatus == 0b10101110) {
+            setConnectionStatus(2);
+        }
+    }
     let i = 0;
     while (i < data.length) {
         let addr = address + i;
@@ -612,10 +624,23 @@ function initDevices(midi) {
     selectedInterface(preselect);
 }
 
+
+function setConnectionStatus(status) {
+    let obj = document.getElementById("connection")
+
+    if (status == 0) {
+        obj.innerHTML = "🔴";
+    } else if (status == 1) {
+        obj.innerHTML = "🟡";
+    } else if (status == 2) {
+        obj.innerHTML = "🟢";
+    }
+}
+
 async function selectedInterface(value) {
     log("selectedInterface(", value, ")");
     if (!midiDevices[value]) {
-        document.getElementById("connection").innerHTML = "🛑";
+        setConnectionStatus(0);
         return;
     }
     if (!value) {
@@ -623,7 +648,7 @@ async function selectedInterface(value) {
     }
     // Connect midioutput
     midioutput = midiDevices[value].output;
-    document.getElementById("connection").innerHTML = "✅";
+    setConnectionStatus(1);
     document.cookie = "midi=" + value;
 
     await new Promise(r => setTimeout(r, 100)); // sleep 100ms
@@ -914,7 +939,7 @@ customElements.define('x-checkbox', class extends HTMLElement {
                 <option>Select MIDI interface</option>
             </select>
         </div>
-        <div id="connection">&nbsp;🛑</div>
+        <div id="connection">🔴</div>
 
         <div>Sound</div>
         <x-select name="tone"></x-select>

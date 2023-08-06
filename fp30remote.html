@@ -167,8 +167,15 @@ b {
 let midi = null;
 let midioutput = null;
 let midiDevices = {};
+const MIDI_SERVICE_UID = "03b80e5a-ede8-4b33-a751-6ce34ec4c700";
+const MIDI_CHAR_DATAIO = "7772e5db-3868-4112-a1a9-f2669d106bf3";
+var mididataio = null;
+var bleservice = null;
+var bledevice = null;
 
+let bleretries = 5;
 let initstatus = 0;
+let identityretries = 5;
 
 let debug = false;
 
@@ -540,6 +547,7 @@ function processMidiMessage(data) {
         }
         else {
             log("got identify, ok");
+            identityretries = -1; // success, don't try again.
         }
         // Enable instrument remote control.
         initRemote();
@@ -608,6 +616,12 @@ function initDevices(midi) {
             preselect = value;
         }
     }
+    if (navigator.bluetooth) {
+        let element = document.createElement("option");
+        element.textContent = "Bluetooth";
+        element.value = "ble";
+        select.appendChild(element);
+    }
     for (const m in midiDevices) {
         if (midiDevices[m].input && midiDevices[m].output) {
             // only add items that have both input and output.
@@ -622,6 +636,115 @@ function initDevices(midi) {
         }
     }
     selectedInterface(preselect);
+}
+
+function bleHandleConnError() {
+    bleretries--;
+    log("bleHandleConnError, retries left:", bleretries);
+    if (bleretries > 0) {
+        setTimeout(bleDoConnect, 1000);
+    }
+}
+function bleDisconnected() {
+    log("bleDisconnected()");
+    bledevice = null;
+}
+
+
+function connectBle() {
+    navigator.bluetooth.requestDevice({ filters: [{ services: [MIDI_SERVICE_UID] }] })
+        .then(device => {
+            bledevice = device;
+            bledevice.addEventListener('gattserverdisconnected', bleDisconnected);
+
+            log("bledevice:", bledevice.id, bledevice.name, bledevice.gatt);
+
+            bleretries = 5;
+            setConnectionStatus(1);
+            bleDoConnect();
+        })
+        .catch(bleHandleConnError);
+}
+
+
+function bleDoConnect() {
+    log("bleDoConnect", bledevice);
+    bledevice.gatt.connect()
+        .then(server => {
+            return server.getPrimaryService(MIDI_SERVICE_UID);
+            })
+        .then(service => {
+            bleservice = service;
+            return bleservice.getCharacteristic(MIDI_CHAR_DATAIO);
+        })
+        .then(characteristic => {
+            mididataio = characteristic;
+            return mididataio.startNotifications();
+        })
+        .then(_ => {
+            log('BLE Notifications started');
+            mididataio.addEventListener('characteristicvaluechanged', handleBleNotification);
+            sendIdentityRequest();
+        })
+        .catch(error => {
+            mididataio = null;
+            log("bleDoConnect error:", error);
+        });
+}
+
+function bleDisconnect() {
+    if (bledevice != null) {
+        bledevice.gatt.disconnect();
+        bledevice = null;
+    }
+}
+
+let databuf = [];
+function handleBleNotification(event) {
+    let buffer = [];
+    for (let x = 0; x < event.target.value.byteLength; x++) {
+        buffer.push(event.target.value.getUint8(x));
+    }
+    log("handleBleNotification bytes", arrayToHex(buffer));
+
+    // BLE MIDI has additional data compared to MIDI. Each packet
+    // - starts with a header byte
+    // - is followed by a timestamp byte, unless the packet is a continuation packet.
+    //   Continuation is only allowed for SysEx.
+    // - each system common message is preceded by a timestamp.
+    // - SysEx can span multiple BLE packets.
+    //
+    // reassemble data.
+    let start = 1;  // continuation message, or start of SysEx
+    if (buffer[1] & 0x80 && (buffer[2] & 0xf0) != 0xf0) {
+        // start packet followed by MIDI data
+        databuf = [];
+        start = 2;
+        log("is data, start = 2");
+    }
+
+    for (let x = start; x < buffer.length; x++) {
+        if (buffer[x] & 0x80 && buffer.length > (x + 1) && buffer[x+1] & 0x80) {
+            // skip timestamp preceding sysex
+            x++;
+        }
+        if (buffer[x] == 0xf0 && databuf.length > 0) {
+            // SysEx: Process existing data, then start new.
+            processMidiMessage(databuf);
+            databuf = [];
+        }
+        databuf.push(buffer[x]);
+        if (buffer[x] == 0xf7) {
+            // EOX: process buffer, then reset buffer.
+            processMidiMessage(databuf);
+            databuf = [];
+        }
+    }
+    if (databuf.length > 0 && !(databuf[0] & 0x80)) {
+        log("end of packet and not in sysex.");
+        processMidiMessage(databuf);
+        databuf = [];
+    }
 }
 
 
@@ -639,6 +762,15 @@ function setConnectionStatus(status) {
 
 async function selectedInterface(value) {
     log("selectedInterface(", value, ")");
+    initstatus = 0;
+    identityretries = 5;
+    bleretries = 5;
+    if (value == "ble") {
+        connectBle();
+        return;
+    }
+    bleDisconnect();
+
     if (!midiDevices[value]) {
         setConnectionStatus(0);
         return;
@@ -661,6 +793,10 @@ async function selectedInterface(value) {
 }
 
 function initRemote() {
+    if (initstatus != 0b10101110) {
+        setTimeout(initRemote, 1000);
+    }
+
     sendDt1(0x01000306, [0x01]);
     sendDt1(0x01000300, [0x00, 0x01]);
 
@@ -675,12 +811,52 @@ function sendMidi(msg) {
     if (midioutput) {
         midioutput.send(msg);
     }
+    if (mididataio) {
+        let offset = 0;
+
+        let ts = performance.now();
+        let header = ((ts >> 6) & 0x63) | 128;
+        let timestamp = (ts & 0x7f) | 128;
+
+        let data = [header];
+        const maxbytes = 15;
+        // We cannot send all data at once but have to split into several BLE packets.
+        //
+        // The 1st packet header is followed by a timestamp byte, continuation
+        // packets only have the header byte. Also, any system common message
+        // has to be prefixed with a timestamp byte.
+        // Since we currently only send SYX message we can defer inserting the
+        // timestamp to 1st byte check (i.e. have the common message check
+        // handle the timestamp on the first packet too.)
+        while (offset < msg.length) {
+            if (msg[offset] & 0x80) {
+                data.push(timestamp);
+            }
+            data.push(msg[offset]);
+            offset++;
+
+            if (offset % maxbytes == 0 || offset == msg.length) {
+                let packet = new Uint8Array(data);
+                log("ble send msg", arrayToHex(data));
+                mididataio.writeValue(packet)
+                    .catch(error => {
+                        log("ble send msg error:", error)});
+                data = [header];
+            }
+        }
+    }
 }
 
 function sendIdentityRequest() {
     log("Sending MIDI identity request");
     const msg = [0xf0, 0x7e, 0x10, 0x06, 0x01, 0xf7];
-    sendMidi(msg);
+    if (identityretries >= 0) {
+        sendMidi(msg);
+    }
+    if (identityretries > 0) {
+        setTimeout(sendIdentityRequest, 1000);
+    }
+    identityretries--;
 }
 
 function sendRq1(address, size) {

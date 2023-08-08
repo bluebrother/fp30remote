@@ -175,7 +175,8 @@ var bledevice = null;
 
 let bleretries = 5;
 let initstatus = 0;
-let identityretries = 5;
+let identityretries = 10;
+const initexpected = 0b10101110;
 
 let debug = false;
 
@@ -371,9 +372,9 @@ function processDt1(address, data) {
         // on startup we read several areas with last address byte 0.
         // Use this to track if we got all responses.
         initstatus |= 1 << ((address & 0xf00) >> 8);
-        log("initstatus:", initstatus);
+        log("initstatus:", initstatus.toString(2));
 
-        if (initstatus == 0b10101110) {
+        if (initstatus == initexpected) {
             setConnectionStatus(2);
         }
     }
@@ -760,7 +761,7 @@ function setConnectionStatus(status) {
 async function selectedInterface(value) {
     log("selectedInterface(", value, ")");
     initstatus = 0;
-    identityretries = 5;
+    identityretries = 10;
     bleretries = 5;
     if (value == "ble") {
         connectBle();
@@ -790,18 +791,28 @@ async function selectedInterface(value) {
 }
 
 function initRemote() {
-    if (initstatus != 0b10101110) {
+    if (initstatus != initexpected) {
         setTimeout(initRemote, 1000);
     }
 
     sendDt1(0x01000306, [0x01]);
     sendDt1(0x01000300, [0x00, 0x01]);
 
-    sendRq1(0x01000100, 0x40);
-    sendRq1(0x01000200, 0x7f);
-    sendRq1(0x01000300, 0x20);
-    sendRq1(0x01000500, 0x20);
-    sendRq1(0x01000700, 0x20);
+    const initrequests = {
+        0x01000100: 0x40,
+        0x01000200: 0x7f,
+        0x01000300: 0x20,
+        0x01000500: 0x20,
+        0x01000700: 0x20,
+    };
+
+    for (let i in initrequests) {
+        let bit = (i & 0xf00) >> 8;
+        if (!((initstatus >> bit) & 0x01)) {
+            sendRq1(i, initrequests[i]);
+            break;
+        }
+    }
 }
 
 function sendMidi(msg) {

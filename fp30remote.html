@@ -705,7 +705,6 @@ function handleBleNotification(event) {
     for (let x = 0; x < event.target.value.byteLength; x++) {
         buffer.push(event.target.value.getUint8(x));
     }
-    log("handleBleNotification bytes", arrayToHex(buffer));
 
     // BLE MIDI has additional data compared to MIDI. Each packet
     // - starts with a header byte
@@ -720,7 +719,6 @@ function handleBleNotification(event) {
         // start packet followed by MIDI data
         databuf = [];
         start = 2;
-        log("is data, start = 2");
     }
 
     for (let x = start; x < buffer.length; x++) {
@@ -741,7 +739,6 @@ function handleBleNotification(event) {
         }
     }
     if (databuf.length > 0 && !(databuf[0] & 0x80)) {
-        log("end of packet and not in sysex.");
         processMidiMessage(databuf);
         databuf = [];
     }
@@ -837,7 +834,6 @@ function sendMidi(msg) {
 
             if (offset % maxbytes == 0 || offset == msg.length) {
                 let packet = new Uint8Array(data);
-                log("ble send msg", arrayToHex(data));
                 mididataio.writeValue(packet)
                     .catch(error => {
                         log("ble send msg error:", error)});

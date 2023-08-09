@@ -815,6 +815,7 @@ function initRemote() {
     }
 }
 
+let lastBleMidiSent = 0;
 function sendMidi(msg) {
     if (midioutput) {
         midioutput.send(msg);
@@ -845,7 +846,11 @@ function sendMidi(msg) {
 
             if (offset % maxbytes == 0 || offset == msg.length) {
                 let packet = new Uint8Array(data);
-                mididataio.writeValue(packet)
+                // FIXME: burn some cycles so we don't send messages too fast.
+                // Is there a way to query if BLE is idle again?
+                while ((performance.now() - lastBleMidiSent) < 50) {}
+                lastBleMidiSent = performance.now();
+                mididataio.writeValueWithoutResponse(packet)
                     .catch(error => {
                         log("ble send msg error:", error)});
                 data = [header];

@@ -761,10 +761,13 @@ function setConnectionStatus(status) {
         }
     } else if (status == 1) {
         obj.innerHTML = "🟡";
+        if (bledevice) {
+            ble.text = `connecting: ${bledevice.name}`;
+        }
     } else if (status == 2) {
         obj.innerHTML = "🟢";
         if (mididataio) {
-            ble.text = `Bluetooth: ${bledevice.name}`;
+            ble.text = `connected: ${bledevice.name}`;
         }
     }
 }
@@ -778,9 +781,12 @@ async function selectedInterface(value) {
         connectBle();
         return;
     }
-    bleDisconnect();
+    if (value != null) {
+        // only disconnect BLE if this wasn't a wired MIDI port change.
+        bleDisconnect();
+    }
 
-    if (!midiDevices[value]) {
+    if (!midiDevices[value] && bledevice == null) {
         setConnectionStatus(0);
         return;
     }

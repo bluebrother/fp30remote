@@ -651,6 +651,7 @@ function bleHandleConnError() {
 function bleDisconnected() {
     log("bleDisconnected()");
     bledevice = null;
+    mididataio = null;
 }
 
 
@@ -699,6 +700,7 @@ function bleDisconnect() {
     if (bledevice != null) {
         bledevice.gatt.disconnect();
         bledevice = null;
+        mididataio = null;
     }
 }
 

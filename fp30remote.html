@@ -817,8 +817,10 @@ function initRemote() {
     for (let i in initrequests) {
         let bit = (i & 0xf00) >> 8;
         if (!((initstatus >> bit) & 0x01)) {
+            // (re)request all missing ones unconditionally. This might read
+            // data we haven't processed yet, but it's notably faster than
+            // serially requesting them, and doesn't hurt.
             sendRq1(i, initrequests[i]);
-            break;
         }
     }
 }

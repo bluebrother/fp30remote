@@ -621,6 +621,7 @@ function initDevices(midi) {
         let element = document.createElement("option");
         element.textContent = "Bluetooth";
         element.value = "ble";
+        element.id = "interface-ble";
         select.appendChild(element);
     }
     for (const m in midiDevices) {
@@ -747,14 +748,21 @@ function handleBleNotification(event) {
 
 
 function setConnectionStatus(status) {
-    let obj = document.getElementById("connection")
+    let obj = document.getElementById("connection");
+    let ble = document.getElementById("interface-ble");
 
     if (status == 0) {
         obj.innerHTML = "🔴";
+        if (ble) {
+            ble.text = "Bluetooth";
+        }
     } else if (status == 1) {
         obj.innerHTML = "🟡";
     } else if (status == 2) {
         obj.innerHTML = "🟢";
+        if (mididataio) {
+            ble.text = `Bluetooth: ${bledevice.name}`;
+        }
     }
 }
 

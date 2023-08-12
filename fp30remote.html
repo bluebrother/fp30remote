@@ -580,7 +580,8 @@ function log(text) {
     const logtext = text + " " + args.join(" ");
     console.log(logtext);
     if (debug) {
-        document.getElementById("log").innerText += logtext + "\n";
+        document.getElementById("log").innerText
+            += `${performance.now().toFixed(1)}: ${logtext}\n`;
     }
 }
 

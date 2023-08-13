@@ -2,7 +2,9 @@
 Roland FP-30 Remote Control
 ===========================
 
-Remote contol the Roland FP-30 (dashboard) settings using WebMIDI.
+Remote contol the Roland FP-30 (dashboard) settings using
+`WebMIDI <https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API>`_ /
+`Web Bluetooth <https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API>`_.
 
 ----
 

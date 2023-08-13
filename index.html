@@ -46,12 +46,20 @@ b {
     <body>
         <h2>Roland FP-30 Remote Control</h2>
         <p>
-            The FP-30 Remote Control uses WebMIDI to connect to an FP-30
-            instrument and control its dashboard settings. Not all dashboard
-            settings have been implemented yet.
-            BLE is (currently) not supported.
+            The FP-30 Remote Control uses WebMIDI / Web Bluetooth to connect to
+            an FP-30 instrument and control its dashboard settings. Not all
+            dashboard settings have been implemented yet.
             It has been optimized for use with mobile browsers.
-            <br/>
+        </p>
+        <p>
+            Both wired and BLE connections are supported. <em>Note that
+            connecting via BLE takes notably longer than MIDI (10 - 15
+            seconds are to be expected.)</em>
+            Once the connection is established the functionality is identical.
+            <em>If your browser doesn't support the BLE API no option for BLE
+            will be shown.</em>
+        </p>
+        <p>
             It is self-contained, so you can save the control panel page
             locally and open it directly.
         </p>
@@ -60,10 +68,10 @@ b {
             <ul>
                 <li>Google Chrome (<em>except on iOS / iPadOS</em>)</li>
                 <li>Chromium based browsers</li>
+                <li>Firefox (since 108, <em>Desktop only, no Bluetooth</em>)</li>
             </ul>
             Incompatible Browsers:
             <ul>
-                <li>Firefox (does not yet have the necesary APIs available)</li>
                 <li>Safari (Apple refuses to implement WebMIDI in WebKit)</li>
                 <li>Google Chrome on iOS / iPadOS (Apple forces browsers to use
                     WebKit)</li>

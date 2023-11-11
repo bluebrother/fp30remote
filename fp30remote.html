@@ -6,7 +6,8 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="color-scheme" content="dark light">
+        <meta name="color-scheme" content="dark light"/>
+        <meta name="theme-color" content="#464ba3"/>
         <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
         <link rel="manifest" href="manifest.json">
 
@@ -16,16 +17,20 @@ body {
     font-size: 14pt;
     user-select: none;
     background: #fff;
+    margin: 0px;
 }
 h2 {
-    margin-left: 4px;
+    padding: 16px;
+    margin-top: 0px;
+    background: #464ba3;
+    color: #fff;
 }
 
 div {
     vertical-align: middle;
     align-items: center;
-    margin-left: 5px;
-    margin-right: 5px;
+    margin-left: 10px;
+    margin-right: 10px;
     margin-top: 10px;
     margin-bottom: 10px;
 }
@@ -1129,7 +1134,7 @@ customElements.define('x-checkbox', class extends HTMLElement {
 
 </head>
 <body onload="setup();">
-    <div><h2>FP-30 Remote Control</h2></div>
+    <h2>FP-30 Remote Control</h2>
     <div style="padding-bottom:20px;">
     <span id='tab-control' class="tabbutton" onclick="toggleGrid('control')">Control</span>
     <span id='tab-extra' class="tabbutton" onclick="toggleGrid('extra')">Extra</span>

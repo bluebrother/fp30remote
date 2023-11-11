@@ -19,8 +19,8 @@
         }
     ],
     "start_url": "fp30remote.html",
-    "background_color": "#666666",
+    "background_color": "#464ba3",
     "display": "standalone",
-    "theme_color": "#666666",
+    "theme_color": "#464ba3",
     "description": "FP-30 Remote Control"
 }

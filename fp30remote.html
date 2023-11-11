@@ -606,17 +606,11 @@ function initDevices(midi) {
     }
 
     let select = document.getElementById("midiInterface");
-    let preselect = null;
+    let preselect = localStorage.getItem("midi");
     if (select.selectedIndex > 0) {
         // index 0 is the special "Select interface" entry.
         preselect = select.value;
         log("preselected:", preselect);
-    }
-    for (let cookie of document.cookie.split(";")) {
-        let [key, value] = cookie.trim().split("=");
-        if (key == "midi") {
-            preselect = value;
-        }
     }
     if (navigator.bluetooth) {
         let element = document.createElement("option");
@@ -796,7 +790,7 @@ async function selectedInterface(value) {
     // Connect midioutput
     midioutput = midiDevices[value].output;
     setConnectionStatus(1);
-    document.cookie = "midi=" + value;
+    localStorage.setitem("midi", value);
 
     await new Promise(r => setTimeout(r, 100)); // sleep 100ms
     let midiinput = midiDevices[value].input;
@@ -1254,10 +1248,10 @@ customElements.define('x-checkbox', class extends HTMLElement {
                 open it directly.
             </p>
             <p>
-                The page uses cookies to store the selected MIDI device to try
-                to reconnect on load. Cookies are not supported for local
-                files. This is a browser limitation; when using from a local
-                copy cookie functionality will not work.
+                The page uses the browsers
+                <a href='https://en.wikipedia.org/wiki/Web_storage'>local
+                storage</a> to store the selected MIDI device to try
+                to reconnect on load.
             </p>
             <p>
                 This is considered experimental.

@@ -1,0 +1,26 @@
+{
+    "short_name": "FP-30 Remote",
+    "name": "FP-30 Remote Control",
+    "icons": [
+        {
+            "src": "icon.svg",
+            "type": "image/svg+xml",
+            "sizes": "any"
+        },
+        {
+            "src": "icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ],
+    "start_url": "fp30remote.html",
+    "background_color": "#666666",
+    "display": "standalone",
+    "theme_color": "#666666",
+    "description": "FP-30 Remote Control"
+}

@@ -1202,9 +1202,7 @@ customElements.define('x-checkbox', class extends HTMLElement {
         <div  class="kbdmode-dual" id="dual_tone2shift_text">0</div>
 
         <div class="kbdmode-split">Split Tone</div>
-        <div class="kbdmode-split">
         <x-select class="kbdmode-split" name="tone_split"></x-select>
-        </div>
         <div class="kbdmode-split"></div>
 
         <div class="kbdmode-split">Split Point</div>
@@ -1228,10 +1226,8 @@ customElements.define('x-checkbox', class extends HTMLElement {
         <div></div>
 
         <div>Speaker</div>
-        <div>
-            <!-- this is read-only - haven't figured the address to write. -->
-            <x-select name="speaker_mode" for="speaker_mode"></x-range>
-        </div>
+        <!-- this is read-only - haven't figured the address to write. -->
+        <x-select name="speaker_mode" for="speaker_mode"></x-select>
         <div></div>
 
         <div>Tuning</div>

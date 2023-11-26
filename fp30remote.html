@@ -645,8 +645,12 @@ function initDevices(midi) {
 
 function bleHandleConnError() {
     bleretries--;
-    log("bleHandleConnError, retries left:", bleretries);
-    if (bleretries > 0) {
+    log(`bleHandleConnError: device {bledevice}, ${bleservice} retries left`);
+    if (bledevice == null) {
+        // aborted by user
+        bleDisconnected();
+    }
+    else if (bleretries > 0) {
         setTimeout(bleDoConnect, 1000);
     }
 }
@@ -654,6 +658,9 @@ function bleDisconnected() {
     log("bleDisconnected()");
     bledevice = null;
     mididataio = null;
+    if (!midioutput) {
+        setSelectValue("midiInterface", "select");
+    }
 }
 
 

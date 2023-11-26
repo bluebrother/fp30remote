@@ -805,7 +805,7 @@ async function selectedInterface(value) {
     // Connect midioutput
     midioutput = midiDevices[value].output;
     setConnectionStatus(1);
-    localStorage.setitem("midi", value);
+    localStorage.setItem("midi", value);
 
     await new Promise(r => setTimeout(r, 100)); // sleep 100ms
     let midiinput = midiDevices[value].input;

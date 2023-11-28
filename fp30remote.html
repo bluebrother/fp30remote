@@ -1040,12 +1040,9 @@ function toggleKeyboardMode(value) {
 
 function keyboardSplitNoteName(value) {
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    let octave = 1;
-    value -= 24; // C1
-    while (value >= notes.length) {
-        value -= notes.length;
-        octave++;
-    }
+    value -= 12; // C0
+    const octave = Math.floor(value / notes.length);
+    value %= notes.length;
     let v = notes[value] + octave;
     document.getElementById("keyboard_split_point_text").innerHTML = v;
 }

@@ -396,8 +396,8 @@ function processDt1(address, data) {
                 value <<= 7;
                 value += data[i + j];
             }
-            const offset = addressmap[addr].offset;
-            value -= offset ? offset : 0;
+            const offset = addressmap[addr].offset || 0;
+            value -= offset;
             if (addressmap[addr].fraction) {
                 value /= (10 ** addressmap[addr].fraction);
             }
@@ -449,16 +449,16 @@ function setMetronomeNamed(value) {
 function setCheckboxValue(objname, value) {
     let element = document.getElementById(objname);
     if (element != null) {
-        element.checked = (value == 0) ? false : true;
+        element.checked = (value != 0);
     }
 }
 
 /* set value of a select type="range" with optional text element */
 function setNumberValue(objname, value, fraction) {
     let v = document.getElementById(objname);
-    v ? (v.value = value) : null;
+    v && (v.value = value);
     let n = document.getElementById(objname + "_text");
-    n ? (n.innerHTML = value.toFixed(fraction)) : null;
+    n && (n.innerHTML = value.toFixed(fraction));
 }
 
 /* set select type="option" value */
@@ -484,19 +484,18 @@ function setValueByName(name, value) {
 
 function setValueByAddress(addr, value) {
     let v = parseFloat(value);
-    let fraction = addressmap[addr]?.fraction;
-    let name = addressmap[addr].name;
-    fraction = fraction ? fraction : 0;
+    let fraction = addressmap[addr]?.fraction || 0;
+    const name = addressmap[addr].name;
     if (addressmap[addr]?.callback) {
         addressmap[addr].callback(v);
         } else {
         const t = document.getElementById(name + "_text");
-        t ? (t.innerHTML = v.toFixed(fraction)) : null;
+        t && (t.innerHTML = v.toFixed(fraction));
     }
 
-    const offset = addressmap[addr]?.offset;
+    const offset = addressmap[addr]?.offset || 0;
     v *= fraction ? (10 ** fraction) : 1;
-    v += offset ? offset : 0;
+    v += offset;
     let msg = [];
     for (let i = addressmap[addr].length; i > 0; i--) {
         msg.push((v >> (7 * (i - 1))) & 0x7f);
@@ -506,8 +505,8 @@ function setValueByAddress(addr, value) {
 
 function arrayToHex(array) {
     let result = "";
-    for (let i = 0; i < array.length; i++) {
-        result += ("0" + array[i].toString(16)).slice(-2);
+    for (let value of array) {
+        result += ("0" + value.toString(16)).slice(-2);
         result += " ";
     }
     return result;
@@ -851,9 +850,9 @@ function sendMidi(msg) {
     if (mididataio) {
         let offset = 0;
 
-        let ts = performance.now();
-        let header = ((ts >> 6) & 0x63) | 128;
-        let timestamp = (ts & 0x7f) | 128;
+        const ts = performance.now();
+        const header = ((ts >> 6) & 0x63) | 128;
+        const timestamp = (ts & 0x7f) | 128;
 
         let data = [header];
         const maxbytes = 15;
@@ -986,10 +985,10 @@ function setup() {
     toggleKeyboardMode(0);
     if (navigator.requestMIDIAccess) {
         try {
-            let res = navigator.requestMIDIAccess({sysex:true})
+            navigator.requestMIDIAccess({sysex:true})
                 .then(onMidiSuccess, onMidiFailure);
         } catch (e) {
-            window.alert("MIDI access not granted", res);
+            window.alert("MIDI access not granted");
         }
     } else {
         window.alert("MIDI access not supported by this browser.");

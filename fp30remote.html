@@ -7,12 +7,18 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="color-scheme" content="dark light"/>
-        <meta name="theme-color" content="#464ba3"/>
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#464ba3"/>
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#464ba3"/>
+
         <link rel="apple-touch-icon" sizes="128x128" href="icon-128.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
         <link rel="manifest" href="manifest.json">
 
     <style>
+:root {
+    accent-color: #464ba3;
+}
+
 body {
     font-family: "DejaVu Sans", verdana, sans-serif;
     font-size: 14pt;
@@ -97,7 +103,7 @@ input {
 }
 
 .checkbox:checked + .toggle {
-    background-color: #4d9fff;
+    background-color: #464ba3;
 }
 
 .checkbox {

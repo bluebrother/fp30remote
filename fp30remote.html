@@ -177,6 +177,7 @@ b {
     </style>
 
 <script>
+"use strict";
 // global access
 let midi = null;
 let midioutput = null;
@@ -567,10 +568,8 @@ function processMidiMessage(data) {
         }
         // Enable instrument remote control.
         initRemote();
-        return;
     }
-
-    if (data.length > 13
+    else if (data.length > 13
         && arrayIsEqual(data, [0xf0, 0x41, 0x10, 0x00, 0x00, 0x00, 0x28])) {
         // ok, is Roland "Piano Partner" message.
         const cmd = data[7];
@@ -883,7 +882,7 @@ function sendMidi(msg) {
                 let packet = new Uint8Array(data);
                 // FIXME: burn some cycles so we don't send messages too fast.
                 // Is there a way to query if BLE is idle again?
-                while ((performance.now() - lastBleMidiSent) < 50) {}
+                while ((performance.now() - lastBleMidiSent) < 50) { /* nothing */ }
                 lastBleMidiSent = performance.now();
                 mididataio.writeValueWithoutResponse(packet)
                     .catch(error => {

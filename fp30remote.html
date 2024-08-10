@@ -412,26 +412,29 @@ function processDt1(address, data) {
 
             i += entry.length;
 
-            // update HTML with data.
-            let e = document.getElementById(entry.name);
-            if (e?.tagName.toLowerCase() == "input"
-                    && e?.getAttribute("type") == "checkbox") {
-                setCheckboxValue(entry.name, value);
-            }
-            else if (e?.tagName.toLowerCase() == "select") { // dropdown
-                setSelectValue(entry.name, value);
-            }
-            else {
-                let fraction = 0;
-                fraction = addressmap[addr]?.fraction;
-                setNumberValue(entry.name, value, fraction);
-            }
-            if (addressmap[addr].callback) {
-                addressmap[addr].callback(value);
-            }
+            setHtmlElementValue(entry.name, value);
         } else {
             i++;
         }
+    }
+}
+
+function setHtmlElementValue(name, value) {
+    let e = document.getElementById(name);
+    if (e?.tagName.toLowerCase() == "input"
+        && e?.getAttribute("type") == "checkbox") {
+        setCheckboxValue(name, value);
+    }
+    else if (e?.tagName.toLowerCase() == "select") { // dropdown
+        setSelectValue(name, value);
+    }
+    else {
+        let fraction = 0;
+        fraction = addressmap[functionmap[name]]?.fraction;
+        setNumberValue(name, value, fraction);
+    }
+    if (addressmap[functionmap[name]].callback) {
+        addressmap[functionmap[name]].callback(value);
     }
 }
 

@@ -365,9 +365,9 @@ const addressmap = {
 };
 
 // build up map with name as key from address map.
-let functionmap = {};
+let nameToAddress = {};
 for (const v in addressmap) {
-    functionmap[addressmap[v].name] = v;
+    nameToAddress[addressmap[v].name] = v;
 };
 
 
@@ -430,11 +430,11 @@ function setHtmlElementValue(name, value) {
     }
     else {
         let fraction = 0;
-        fraction = addressmap[functionmap[name]]?.fraction;
+        fraction = addressmap[nameToAddress[name]]?.fraction;
         setNumberValue(name, value, fraction);
     }
-    if (addressmap[functionmap[name]].callback) {
-        addressmap[functionmap[name]].callback(value);
+    if (addressmap[nameToAddress[name]].callback) {
+        addressmap[nameToAddress[name]].callback(value);
     }
 }
 
@@ -487,8 +487,7 @@ function setSelectValue(objname, value) {
 
 /* send selected value to instrument */
 function setValueByName(name, value) {
-    const addr = functionmap[name];
-    setValueByAddress(addr, value);
+    setValueByAddress(nameToAddress[name], value);
 }
 
 function setValueByAddress(addr, value) {
@@ -1071,17 +1070,17 @@ customElements.define('x-range', class extends HTMLElement {
     connectedCallback() {
         let element = document.createElement("input");
         const name = this.getAttribute("name");
-        const write = addressmap[functionmap[name]].write || name;
-        const min = addressmap[functionmap[name]].min;
-        const max = addressmap[functionmap[name]].max;
+        const write = addressmap[nameToAddress[name]].write || name;
+        const min = addressmap[nameToAddress[name]].min;
+        const max = addressmap[nameToAddress[name]].max;
         setAttributes(element, {"type": "range", "class": "slider"});
         setAttributes(element, {"id": name,
             "min": min,
             "max": max,
             "value": min,
             "oninput": `setValueByName('${write}', this.value);`});
-        if (addressmap[functionmap[name]].fraction) {
-            element.setAttribute("step", 1 / (10 ** addressmap[functionmap[name]].fraction));
+        if (addressmap[nameToAddress[name]].fraction) {
+            element.setAttribute("step", 1 / (10 ** addressmap[nameToAddress[name]].fraction));
         }
         this.appendChild(element);
     }
@@ -1109,17 +1108,17 @@ customElements.define('x-select', class extends HTMLElement {
         const name = this.getAttribute("name");
         // forname: this stands in for the selection (parameter) forname.
         const forname = this.getAttribute("for") || name;
-        const write = addressmap[functionmap[forname]].write || forname;
+        const write = addressmap[nameToAddress[forname]].write || forname;
 
         let element = document.createElement("select");
         setAttributes(element, {"id": name,
             "name": name,
             "class": this.getAttribute('class'),
             "oninput": `setValueByName('${write}', this.value);`});
-        if (addressmap[functionmap[forname]].write === null) {
+        if (addressmap[nameToAddress[forname]].write === null) {
             element.setAttribute("disabled", "");
         }
-        addOptionItems(element, addressmap[functionmap[forname]].values);
+        addOptionItems(element, addressmap[nameToAddress[forname]].values);
         this.appendChild(element);
     }
 });
@@ -1127,7 +1126,7 @@ customElements.define('x-select', class extends HTMLElement {
 customElements.define('x-checkbox', class extends HTMLElement {
     connectedCallback() {
         const name = this.getAttribute("name");
-        const write = addressmap[functionmap[name]].write || name;
+        const write = addressmap[nameToAddress[name]].write || name;
         const value = this.getAttribute("value") || "this.value";
 
         let element = document.createElement("input");

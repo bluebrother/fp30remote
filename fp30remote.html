@@ -205,6 +205,7 @@ const tempi_named = {
     168: "Presto",
     200: "Prestissimo"
 };
+Object.freeze(tempi_named);
 
 // Maps 3 byte parameter to tone name. Value is the actual numeric value (i.e.
 // 7bit-in-8bit), not the byte sequence on the MIDI connection.
@@ -251,6 +252,7 @@ const soundmap = {
         0x008015: "Thum Voice"
     }
 };
+Object.freeze(soundmap);
 
 /*
  * Roland FP-30 Dashboard Address Map.
@@ -364,13 +366,17 @@ const addressmap = {
     0x01000509: {name: 'metronome_enabled',
                  length: 1 },
 };
+Object.freeze(addressmap);
 
 // build up map with name as key from address map.
-let nameToAddress = {};
-for (const v in addressmap) {
-    nameToAddress[addressmap[v].name] = v;
-};
-
+const nameToAddress = (function() {
+    let mapping = {};
+    for (const v in addressmap) {
+        mapping[addressmap[v].name] = v;
+    }
+    return mapping;
+}());
+Object.freeze(nameToAddress);
 
 function checksum(data) {
     // Roland SysEx checksum

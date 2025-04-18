@@ -719,50 +719,53 @@ function bleDisconnect() {
     }
 }
 
-let databuf = [];
-function handleBleNotification(event) {
-    let buffer = [];
-    for (let x = 0; x < event.target.value.byteLength; x++) {
-        buffer.push(event.target.value.getUint8(x));
-    }
+var handleBleNotification = (function() {
+    let databuf = [];
 
-    // BLE MIDI has additional data compared to MIDI. Each packet
-    // - starts with a header byte
-    // - is followed by a timestamp byte, unless the packet is a continuation packet.
-    //   Continuation is only allowed for SysEx.
-    // - each system common message is preceded by a timestamp.
-    // - SysEx can span multiple BLE packets.
-    //
-    // reassemble data.
-    let start = 1;  // continuation message, or start of SysEx
-    if (buffer[1] & 0x80 && (buffer[2] & 0xf0) != 0xf0) {
-        // start packet followed by MIDI data
-        databuf = [];
-        start = 2;
-    }
-
-    for (let x = start; x < buffer.length; x++) {
-        if (buffer[x] & 0x80 && buffer.length > (x + 1) && buffer[x+1] & 0x80) {
-            // skip timestamp preceding sysex
-            x++;
+    return function(event) {
+        let buffer = [];
+        for (let x = 0; x < event.target.value.byteLength; x++) {
+            buffer.push(event.target.value.getUint8(x));
         }
-        if (buffer[x] == 0xf0 && databuf.length > 0) {
-            // SysEx: Process existing data, then start new.
+
+        // BLE MIDI has additional data compared to MIDI. Each packet
+        // - starts with a header byte
+        // - is followed by a timestamp byte, unless the packet is a
+        //   continuation packet. Continuation is only allowed for SysEx.
+        // - each system common message is preceded by a timestamp.
+        // - SysEx can span multiple BLE packets.
+        //
+        // reassemble data.
+        let start = 1;  // continuation message, or start of SysEx
+        if (buffer[1] & 0x80 && (buffer[2] & 0xf0) != 0xf0) {
+            // start packet followed by MIDI data
+            databuf = [];
+            start = 2;
+        }
+
+        for (let x = start; x < buffer.length; x++) {
+            if (buffer[x] & 0x80 && buffer.length > (x + 1) && buffer[x+1] & 0x80) {
+                // timestamp preceding sysex, skip it
+                x++;
+            }
+            if (buffer[x] == 0xf0 && databuf.length > 0) {
+                // Start of SysEx: Process existing data, then start new.
+                processMidiMessage(databuf);
+                databuf = [];
+            }
+            databuf.push(buffer[x]);
+            if (buffer[x] == 0xf7) {
+                // EOX: process buffer, then reset buffer.
+                processMidiMessage(databuf);
+                databuf = [];
+            }
+        }
+        if (databuf.length > 0 && !(databuf[0] & 0x80)) {
             processMidiMessage(databuf);
             databuf = [];
         }
-        databuf.push(buffer[x]);
-        if (buffer[x] == 0xf7) {
-            // EOX: process buffer, then reset buffer.
-            processMidiMessage(databuf);
-            databuf = [];
-        }
     }
-    if (databuf.length > 0 && !(databuf[0] & 0x80)) {
-        processMidiMessage(databuf);
-        databuf = [];
-    }
-}
+}());
 
 
 function setConnectionStatus(status) {

@@ -8,15 +8,30 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="color-scheme" content="dark light">
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#073642"/>
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#eee8d5"/>
         <link rel="apple-touch-icon" sizes="128x128" href="icon-128.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png" />
         <link rel="manifest" href="manifest.json">
     <style>
+:root {
+    --base03: #002b36;
+    --base02: #073642;
+    --base01: #586e75;
+    --base00: #657b83;
+    --base0: #839496;
+    --base1: #93a1a1;
+    --base2: #eee8d5;
+    --base3: #fdf6e3;
+    --blue: #268bd2;
+}
+
 body {
     font-family: verdana,sans-serif;
     font-size: 14pt;
     user-select: none;
-    background: #fff;
+    color: var(--base03);
+    background: var(--base3);
 }
 h2 {
     margin-left: 4px;
@@ -33,15 +48,20 @@ div {
     margin-bottom: 10px;
 }
 b {
-    background-color: #ffc;
+    background-color: var(--base2);
 }
 
 @media (prefers-color-scheme: dark) {
-    body {
-        background: #333;
-    }
-    b {
-        background-color: #666;
+    :root {
+        --base3: #002b36;
+        --base2: #073642;
+        --base1: #586e75;
+        --base0: #657b83;
+        --base00: #839496;
+        --base01: #93a1a1;
+        --base02: #eee8d5;
+        --base03: #fdf6e3;
+        --blue: #268bd2;
     }
 }
     </style>
